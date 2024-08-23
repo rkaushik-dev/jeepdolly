@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 
+from .errors import Conflict, Impossible
 from .measure import Pounds
 
 
@@ -57,13 +58,13 @@ class SeasonOrder:
 
     def __post_init__(self) -> None:
         if self.end < self.start:
-            raise ValueError(f"order {self.number} ends before it starts")
+            raise Impossible(f"order {self.number} ends before it starts", order=self.number)
         if not 1 <= self.share <= 200:
-            raise ValueError(f"order {self.number} has an unreadable share {self.share}")
+            raise Impossible(f"order {self.number} has an unreadable share {self.share}")
         if self.kind is SeasonKind.THAW and self.share >= 100:
-            raise ValueError(f"thaw order {self.number} does not reduce anything")
+            raise Impossible(f"thaw order {self.number} does not reduce anything")
         if self.kind is SeasonKind.FROZEN and self.share <= 100:
-            raise ValueError(f"frozen order {self.number} does not allow anything")
+            raise Impossible(f"frozen order {self.number} does not allow anything")
 
     def covers(self, day: date) -> bool:
         return self.start <= day <= self.end
@@ -93,10 +94,12 @@ class SeasonBook:
     def file(self, order: SeasonOrder) -> SeasonOrder:
         for existing in self._orders:
             if existing.number == order.number:
-                raise ValueError(f"order {order.number} is already on file")
+                raise Conflict(f"order {order.number} is already on file", order=order.number)
             if existing.region == order.region and existing.overlaps(order):
-                raise ValueError(
-                    f"order {order.number} overlaps {existing.number} in {order.region}"
+                raise Conflict(
+                    f"order {order.number} overlaps {existing.number} in {order.region}",
+                    order=order.number,
+                    against=existing.number,
                 )
         self._orders.append(order)
         return order

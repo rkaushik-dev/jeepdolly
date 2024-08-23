@@ -3,6 +3,7 @@
 import pytest
 
 from jeepdolly.domain.axle import Axle, AxleGroup, AxleKind, group_name
+from jeepdolly.errors import Impossible
 from jeepdolly.measure import Inches, Pounds
 
 
@@ -24,7 +25,7 @@ def test_a_group_is_named_for_how_many_axles_stand_in_it():
 
 
 def test_a_group_of_no_axles_is_not_a_group():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         group_name(0)
 
 
@@ -54,21 +55,21 @@ def test_an_axle_over_its_tire_limit_reports_the_overage_and_not_a_verdict():
 
 
 def test_an_axle_needs_an_even_count_of_at_least_two_tires():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         drive(tires=3)
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         drive(tires=0)
 
 
 def test_an_axle_cannot_carry_a_negative_weight_or_stand_on_nothing():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         drive(weight=-1)
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         drive(tire_width=Inches(0))
 
 
 def test_a_steer_axle_does_not_lift_and_saying_so_is_refused():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         Axle(AxleKind.STEER, Pounds(12000), tires=2, liftable=True)
 
 
@@ -95,24 +96,24 @@ def test_a_group_adds_up_its_axles_and_says_so():
 
 
 def test_axles_further_apart_than_eight_feet_are_not_one_group():
-    with pytest.raises(ValueError) as refusal:
+    with pytest.raises(Impossible) as refusal:
         AxleGroup((trailer(), trailer()), (Inches.of(9),))
     assert "too far apart" in str(refusal.value)
 
 
 def test_axles_standing_in_the_same_place_are_not_two_axles():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         AxleGroup((trailer(), trailer()), (Inches(0),))
 
 
 def test_the_spacing_count_has_to_match_the_axle_count():
-    with pytest.raises(ValueError) as refusal:
+    with pytest.raises(Impossible) as refusal:
         AxleGroup((trailer(), trailer(), trailer()), (Inches(52),))
     assert "need 2 spacings" in str(refusal.value)
 
 
 def test_an_empty_group_is_refused_before_anything_else_is_asked_of_it():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         AxleGroup(())
 
 

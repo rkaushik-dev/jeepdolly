@@ -3,6 +3,7 @@
 import pytest
 
 from jeepdolly.domain.envelope import Envelope, Excess
+from jeepdolly.errors import Impossible
 from jeepdolly.measure import Inches
 
 #: Legal size on a state highway, which is the box most loads are compared to.
@@ -28,21 +29,21 @@ def test_an_envelope_prints_the_way_the_permit_face_prints_it():
 
 
 def test_a_load_without_a_width_or_a_height_is_not_a_load():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         Envelope(Inches(0), Inches.of(13), Inches.of(70))
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         Envelope(Inches.of(8), Inches(0), Inches.of(70))
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         Envelope(Inches.of(8), Inches.of(13), Inches(0))
 
 
 def test_an_overhang_measured_inward_is_a_typing_mistake():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         Envelope(Inches.of(8), Inches.of(13), Inches.of(70), Inches(-12))
 
 
 def test_overhangs_longer_than_the_combination_are_refused():
-    with pytest.raises(ValueError) as refusal:
+    with pytest.raises(Impossible) as refusal:
         Envelope(Inches.of(8), Inches.of(13), Inches.of(20), Inches.of(12), Inches.of(12))
     assert "longer than the whole combination" in str(refusal.value)
 
@@ -111,5 +112,5 @@ def test_growing_an_envelope_answers_a_what_if_without_editing_the_first_one():
 
 
 def test_growing_a_measure_that_does_not_exist_is_refused():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         box().grown(weight=Inches(12))

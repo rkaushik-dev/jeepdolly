@@ -2,6 +2,7 @@
 
 import pytest
 
+from jeepdolly.errors import Unreadable
 from jeepdolly.measure import Inches, Miles, Pounds
 
 
@@ -24,11 +25,11 @@ def test_a_size_written_in_whole_feet_needs_no_inches_part():
 
 
 def test_a_size_that_cannot_be_read_is_refused_rather_than_guessed():
-    with pytest.raises(ValueError):
+    with pytest.raises(Unreadable):
         Inches.parse("about fourteen feet")
-    with pytest.raises(ValueError):
+    with pytest.raises(Unreadable):
         Inches.parse("14.5")
-    with pytest.raises(ValueError):
+    with pytest.raises(Unreadable):
         Inches.parse("")
 
 
@@ -90,11 +91,11 @@ def test_tons_are_read_and_then_never_stored_again():
 
 
 def test_a_weight_that_cannot_be_read_is_refused():
-    with pytest.raises(ValueError):
+    with pytest.raises(Unreadable):
         Pounds.parse("heavy")
-    with pytest.raises(ValueError):
+    with pytest.raises(Unreadable):
         Pounds.parse("40.5 tons")
-    with pytest.raises(ValueError):
+    with pytest.raises(Unreadable):
         Pounds.parse("132.4 lb")
 
 
@@ -133,9 +134,9 @@ def test_a_distance_parses_off_the_road_log():
 
 
 def test_a_distance_with_more_than_two_places_is_not_off_the_road_log():
-    with pytest.raises(ValueError):
+    with pytest.raises(Unreadable):
         Miles.parse("12.400")
-    with pytest.raises(ValueError):
+    with pytest.raises(Unreadable):
         Miles.parse("twelve")
     with pytest.raises(TypeError):
         Miles(12.4)

@@ -4,6 +4,7 @@ from datetime import date
 
 import pytest
 
+from jeepdolly.errors import Conflict, Impossible
 from jeepdolly.measure import Pounds
 from jeepdolly.seasons import SeasonBook, SeasonKind, SeasonOrder
 
@@ -43,23 +44,23 @@ def test_a_frozen_order_raises_it_instead():
 
 
 def test_an_order_that_ends_before_it_starts_is_a_typing_mistake():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         thaw(start=date(2025, 5, 2), end=date(2025, 3, 17))
 
 
 def test_a_thaw_that_reduces_nothing_is_refused_and_so_is_the_reverse():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         thaw(share=100)
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         thaw(share=115)
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         SeasonOrder("25-09", "north", SeasonKind.FROZEN, date(2025, 1, 2), date(2025, 2, 1), 90)
 
 
 def test_a_share_nobody_could_have_meant_is_refused():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         thaw(share=0)
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         SeasonOrder("25-09", "north", SeasonKind.FROZEN, date(2025, 1, 2), date(2025, 2, 1), 400)
 
 
@@ -93,7 +94,7 @@ def test_a_road_is_posted_only_while_a_thaw_order_is_running():
 def test_two_orders_of_one_region_may_not_overlap():
     book = SeasonBook()
     book.file(thaw())
-    with pytest.raises(ValueError) as refusal:
+    with pytest.raises(Conflict) as refusal:
         book.file(thaw(number="25-05", start=date(2025, 4, 20), end=date(2025, 5, 20)))
     assert "overlaps 25-04" in str(refusal.value)
 
@@ -109,7 +110,7 @@ def test_the_same_span_in_a_different_region_is_a_different_order():
 def test_an_order_number_is_used_once():
     book = SeasonBook()
     book.file(thaw())
-    with pytest.raises(ValueError) as refusal:
+    with pytest.raises(Conflict) as refusal:
         book.file(thaw(region="downeast"))
     assert "already on file" in str(refusal.value)
 

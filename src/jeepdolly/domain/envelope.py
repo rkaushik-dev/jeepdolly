@@ -28,6 +28,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, fields
 
+from ..errors import Impossible
 from ..measure import ZERO_INCHES, Inches
 
 #: The six measures, in the order the application form prints them.
@@ -82,11 +83,11 @@ class Envelope:
             if not isinstance(value, Inches):
                 raise TypeError(f"{field.name} is a size, not {value!r}")
         if self.width.value <= 0 or self.height.value <= 0 or self.length.value <= 0:
-            raise ValueError("a load has a width, a height and a length")
+            raise Impossible("a load has a width, a height and a length")
         if self.front_overhang.value < 0 or self.rear_overhang.value < 0:
-            raise ValueError("an overhang is measured outward or it is nothing")
+            raise Impossible("an overhang is measured outward or it is nothing")
         if self.front_overhang + self.rear_overhang > self.length:
-            raise ValueError("the overhangs are longer than the whole combination")
+            raise Impossible("the overhangs are longer than the whole combination")
 
     @classmethod
     def read(
@@ -133,7 +134,7 @@ class Envelope:
         values = {name: getattr(self, name) for name in MEASURES}
         for name, amount in by.items():
             if name not in values:
-                raise ValueError(f"an envelope has no {name}")
+                raise Impossible(f"an envelope has no {name}")
             values[name] = values[name] + amount
         return Envelope(**values)
 

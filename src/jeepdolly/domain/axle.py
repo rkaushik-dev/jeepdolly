@@ -29,6 +29,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from ..errors import Impossible
 from ..measure import Inches, Pounds
 
 #: Axles standing this close or closer are read as one group.
@@ -41,7 +42,7 @@ GROUP_NAMES = {1: "single", 2: "tandem", 3: "tridem", 4: "quad", 5: "quint", 6: 
 def group_name(count: int) -> str:
     """The word the office uses for a group of this many axles."""
     if count < 1:
-        raise ValueError("a group holds at least one axle")
+        raise Impossible("a group holds at least one axle")
     return GROUP_NAMES.get(count, f"{count} axle group")
 
 
@@ -70,13 +71,13 @@ class Axle:
 
     def __post_init__(self) -> None:
         if self.weight.value < 0:
-            raise ValueError("an axle cannot carry a negative weight")
+            raise Impossible("an axle cannot carry a negative weight")
         if self.tires < 2 or self.tires % 2:
-            raise ValueError(f"an axle stands on an even count of tires, not {self.tires}")
+            raise Impossible(f"an axle stands on an even count of tires, not {self.tires}")
         if self.tire_width.value < 1:
-            raise ValueError("an axle stands on tires with a width")
+            raise Impossible("an axle stands on tires with a width")
         if self.kind is AxleKind.STEER and self.liftable:
-            raise ValueError("a steer axle does not lift")
+            raise Impossible("a steer axle does not lift")
 
     @property
     def tire_inches(self) -> Inches:
@@ -109,17 +110,17 @@ class AxleGroup:
 
     def __post_init__(self) -> None:
         if not self.axles:
-            raise ValueError("a group holds at least one axle")
+            raise Impossible("a group holds at least one axle")
         if len(self.spacings) != len(self.axles) - 1:
-            raise ValueError(
+            raise Impossible(
                 f"{len(self.axles)} axles need {len(self.axles) - 1} spacings, "
                 f"got {len(self.spacings)}"
             )
         for spacing in self.spacings:
             if spacing.value <= 0:
-                raise ValueError("axles in a group stand apart")
+                raise Impossible("axles in a group stand apart")
             if spacing > GROUP_REACH:
-                raise ValueError(f"{spacing} is too far apart to be one group")
+                raise Impossible(f"{spacing} is too far apart to be one group")
 
     @property
     def count(self) -> int:

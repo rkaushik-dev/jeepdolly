@@ -28,6 +28,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from dataclasses import dataclass
 
+from ..errors import Impossible
 from ..measure import Inches, Pounds
 from .axle import GROUP_REACH, Axle, AxleGroup, group_name
 
@@ -70,14 +71,14 @@ class AxleStream:
 
     def __init__(self, axles: tuple[Axle, ...], spacings: tuple[Inches, ...]) -> None:
         if not axles:
-            raise ValueError("a stream holds at least one axle")
+            raise Impossible("a stream holds at least one axle")
         if len(spacings) != len(axles) - 1:
-            raise ValueError(
+            raise Impossible(
                 f"{len(axles)} axles need {len(axles) - 1} spacings, got {len(spacings)}"
             )
         for spacing in spacings:
             if spacing.value <= 0:
-                raise ValueError("two axles cannot stand in the same place")
+                raise Impossible("two axles cannot stand in the same place")
         self.axles = axles
         self.spacings = spacings
 
@@ -123,7 +124,7 @@ class AxleStream:
         clerk reading a refusal wants the tightest failing run named first.
         """
         if minimum < 1:
-            raise ValueError("a span holds at least one axle")
+            raise Impossible("a span holds at least one axle")
         for length in range(minimum, self.count + 1):
             for first in range(0, self.count - length + 1):
                 last = first + length - 1

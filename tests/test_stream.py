@@ -3,6 +3,7 @@
 import pytest
 
 from jeepdolly.domain.stream import AxleStream
+from jeepdolly.errors import Impossible
 from jeepdolly.measure import Inches, Pounds
 from support import jeeped_lowboy, make_stream, tractor_lowboy
 
@@ -20,18 +21,18 @@ def test_a_stream_prints_itself_for_the_worksheet():
 
 
 def test_a_stream_needs_one_fewer_spacing_than_it_has_axles():
-    with pytest.raises(ValueError) as refusal:
+    with pytest.raises(Impossible) as refusal:
         make_stream([12000, 17000, 17000], [200])
     assert "need 2 spacings" in str(refusal.value)
 
 
 def test_two_axles_cannot_stand_in_the_same_place():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         make_stream([12000, 17000], [0])
 
 
 def test_a_stream_with_no_axles_is_refused():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         AxleStream((), ())
 
 
@@ -108,7 +109,7 @@ def test_asking_for_single_axle_runs_includes_every_axle_on_its_own():
 
 
 def test_a_run_of_no_axles_is_not_a_thing_to_ask_for():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         list(tractor_lowboy().spans(minimum=0))
 
 

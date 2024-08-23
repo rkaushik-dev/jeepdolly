@@ -4,6 +4,7 @@ from datetime import date, datetime
 
 import pytest
 
+from jeepdolly.errors import Impossible
 from jeepdolly.travelcalendar import (
     MONDAY,
     PermitCalendar,
@@ -22,7 +23,7 @@ def test_the_nth_weekday_lands_where_a_wall_calendar_says():
 
 
 def test_asking_for_a_weekday_a_month_does_not_have_is_an_error():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         nth_weekday(2025, 2, MONDAY, 5)
 
 
@@ -91,7 +92,7 @@ def test_counting_open_days_includes_both_ends_of_the_span():
 
 
 def test_counting_backwards_is_a_mistake_and_says_so():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         PermitCalendar(2025).open_days_between(date(2025, 8, 8), date(2025, 8, 4))
 
 
@@ -140,5 +141,5 @@ def test_the_ban_covering_a_moment_names_itself():
 
 
 def test_a_window_that_ends_before_it_starts_is_not_a_window():
-    with pytest.raises(ValueError):
+    with pytest.raises(Impossible):
         Window(datetime(2025, 7, 4, 12, 0), datetime(2025, 7, 3, 12, 0), "backwards")

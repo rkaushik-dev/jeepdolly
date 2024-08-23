@@ -29,6 +29,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from .errors import Unreadable
+
 INCHES_PER_FOOT = 12
 POUNDS_PER_TON = 2000
 HUNDREDTHS_PER_MILE = 100
@@ -78,7 +80,7 @@ class Inches:
         found = _BARE.match(text)
         if found:
             return cls(int(found.group("inches")))
-        raise ValueError(f"cannot read {text!r} as a size")
+        raise Unreadable(f"cannot read {text!r} as a size", written=text)
 
     @property
     def feet(self) -> int:
@@ -155,10 +157,10 @@ class Pounds:
                 if cleaned.endswith(suffix):
                     tons = cleaned[: -len(suffix)].strip()
                     if not tons.isdigit():
-                        raise ValueError(f"cannot read {text!r} as a weight")
+                        raise Unreadable(f"cannot read {text!r} as a weight", written=text)
                     return cls.of_tons(int(tons))
         if not cleaned.isdigit():
-            raise ValueError(f"cannot read {text!r} as a weight")
+            raise Unreadable(f"cannot read {text!r} as a weight", written=text)
         return cls(int(cleaned))
 
     def over(self, limit: Pounds) -> Pounds:
@@ -210,11 +212,11 @@ class Miles:
         cleaned = text.strip().lower().removesuffix("miles").removesuffix("mi").strip()
         if "." not in cleaned:
             if not cleaned.isdigit():
-                raise ValueError(f"cannot read {text!r} as a distance")
+                raise Unreadable(f"cannot read {text!r} as a distance", written=text)
             return cls.of(int(cleaned))
         whole, _, part = cleaned.partition(".")
         if not whole.isdigit() or not part.isdigit() or len(part) > 2:
-            raise ValueError(f"cannot read {text!r} as a distance")
+            raise Unreadable(f"cannot read {text!r} as a distance", written=text)
         return cls.of(int(whole), int(part.ljust(2, "0")))
 
     def rounded_up(self) -> int:

@@ -24,6 +24,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
+from .errors import Impossible
+
 MONDAY = 0
 THURSDAY = 3
 FRIDAY = 4
@@ -40,7 +42,7 @@ def nth_weekday(year: int, month: int, weekday: int, n: int) -> date:
     ahead = (weekday - first.weekday()) % 7
     day = first + timedelta(days=ahead + 7 * (n - 1))
     if day.month != month:
-        raise ValueError(f"no {n} of weekday {weekday} in {year}-{month:02d}")
+        raise Impossible(f"no {n} of weekday {weekday} in {year}-{month:02d}")
     return day
 
 
@@ -83,7 +85,7 @@ class Window:
 
     def __post_init__(self) -> None:
         if self.end <= self.start:
-            raise ValueError("a window ends after it starts")
+            raise Impossible("a window ends after it starts")
 
     def covers(self, when: datetime) -> bool:
         return self.start <= when <= self.end
@@ -161,7 +163,7 @@ class PermitCalendar:
     def open_days_between(self, start: date, end: date) -> int:
         """Open days from ``start`` up to and including ``end``."""
         if end < start:
-            raise ValueError("the span ends before it starts")
+            raise Impossible("the span ends before it starts")
         day, count = start, 0
         while day <= end:
             if self.is_open(day):
