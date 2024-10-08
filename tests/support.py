@@ -3,13 +3,49 @@
 Every number here can be worked back to something a hauler would put on an
 application. The tractor and lowboy below is the one the office sees ten times
 a week: a day cab pulling a three axle lowboy with an excavator on it.
+
+The network is nine places in the middle of the state with twelve segments
+between them, which is enough to have two ways round most things and one way
+into Anson. It is not a map of anywhere. It is a road log small enough that a
+person can check a route by hand and big enough that the router has to work.
 """
 
 from jeepdolly.domain.axle import Axle, AxleKind
+from jeepdolly.domain.highway import Jurisdiction, Route
+from jeepdolly.domain.network import Network, Node, Segment
 from jeepdolly.domain.stream import AxleStream
-from jeepdolly.measure import Inches, Pounds
+from jeepdolly.measure import Inches, Miles, Pounds
 
 STEER = Axle(AxleKind.STEER, Pounds(12000), tires=2, tire_width=Inches(16))
+
+#: town, county, district for each place in the test network.
+PLACES = {
+    "waterville": ("Kennebec", 3),
+    "fairfield": ("Somerset", 3),
+    "skowhegan": ("Somerset", 4),
+    "norridgewock": ("Somerset", 4),
+    "madison": ("Somerset", 4),
+    "anson": ("Somerset", 4),
+    "canaan": ("Somerset", 4),
+    "pittsfield": ("Somerset", 3),
+    "newport": ("Penobscot", 3),
+}
+
+#: ident, route, start, end, hundredths of a mile, one way.
+ROADS = [
+    ("I95-1", "I-95", "waterville", "fairfield", 460, False),
+    ("I95-2", "I-95", "fairfield", "pittsfield", 1420, False),
+    ("US201-1", "US 201", "waterville", "fairfield", 510, False),
+    ("US201-2", "US 201", "fairfield", "skowhegan", 1240, False),
+    ("US201-3", "US 201", "skowhegan", "anson", 870, False),
+    ("US2-1", "US 2", "skowhegan", "norridgewock", 620, False),
+    ("US2-2", "US 2", "pittsfield", "newport", 890, False),
+    ("SR8-1", "SR 8", "norridgewock", "madison", 730, False),
+    ("SA148-1", "SA 148", "norridgewock", "canaan", 940, False),
+    ("SA148-2", "SA 148", "canaan", "skowhegan", 760, False),
+    ("SR43-1", "SR 43", "canaan", "pittsfield", 1010, False),
+    ("TR104-1", "TR 104", "madison", "anson", 320, False),
+]
 
 
 def axle(weight, kind=AxleKind.TRAILER, **kw):
@@ -60,3 +96,43 @@ def jeeped_lowboy():
             AxleKind.BOOSTER,
         ],
     )
+
+
+def legal_semi():
+    """Five axles, eighty thousand, tandems thirty six feet apart."""
+    return make_stream(
+        [12000, 17000, 17000, 17000, 17000],
+        [200, 54, 324, 54],
+        [
+            AxleKind.STEER,
+            AxleKind.DRIVE,
+            AxleKind.DRIVE,
+            AxleKind.TRAILER,
+            AxleKind.TRAILER,
+        ],
+    )
+
+
+def place(name):
+    county, district = PLACES[name]
+    return Jurisdiction(county, name.title(), district)
+
+
+def road_log():
+    """Nine places, twelve segments, two ways round most things."""
+    network = Network()
+    for name in PLACES:
+        network.add_node(Node(name, name.title()))
+    for ident, route, start, end, hundredths, one_way in ROADS:
+        network.add_segment(
+            Segment(
+                ident,
+                Route.parse(route),
+                start,
+                end,
+                Miles(hundredths),
+                place(start),
+                one_way=one_way,
+            )
+        )
+    return network
