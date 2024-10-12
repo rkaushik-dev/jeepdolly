@@ -101,25 +101,42 @@ def evaluate(
 ) -> RouteReading:
     """Read every leg of the trip against every restriction on it."""
     found: list[Obstruction] = []
-    for ident in itinerary.unpermittable():
+    for leg in itinerary:
+        found.extend(
+            segment_obstructions(
+                leg.segment, envelope, gross, day, restrictions, seasons, statutes, departure
+            )
+        )
+    return RouteReading(day, itinerary, tuple(found))
+
+
+def segment_obstructions(
+    segment: Segment,
+    envelope: Envelope,
+    gross: Pounds,
+    day: date,
+    restrictions: RestrictionBook,
+    seasons: SeasonBook,
+    statutes: StatutoryBook,
+    departure: time | None = None,
+) -> tuple[Obstruction, ...]:
+    """What is in the way on one segment, which is what the router asks."""
+    found = []
+    if not segment.highway_class.permittable:
         found.append(
             Obstruction(
-                segment=ident,
+                segment=segment.ident,
                 kind="jurisdiction",
                 note="the state does not maintain this road",
                 needed="a permit from the town",
                 allowed="nothing from this office",
             )
         )
-    for leg in itinerary:
-        segment = leg.segment
-        for restriction in restrictions.on_segment(segment.ident, day):
-            trouble = _read(
-                restriction, envelope, gross, day, seasons, statutes, segment, departure
-            )
-            if trouble is not None:
-                found.append(trouble)
-    return RouteReading(day, itinerary, tuple(found))
+    for restriction in restrictions.on_segment(segment.ident, day):
+        trouble = _read(restriction, envelope, gross, day, seasons, statutes, segment, departure)
+        if trouble is not None:
+            found.append(trouble)
+    return tuple(found)
 
 
 def _read(
