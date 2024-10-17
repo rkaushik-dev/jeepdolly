@@ -10,11 +10,14 @@ into Anson. It is not a map of anywhere. It is a road log small enough that a
 person can check a route by hand and big enough that the router has to work.
 """
 
+from datetime import date
+
 from jeepdolly.domain.axle import Axle, AxleKind
 from jeepdolly.domain.highway import Jurisdiction, Route
 from jeepdolly.domain.network import Network, Node, Segment
 from jeepdolly.domain.stream import AxleStream
 from jeepdolly.measure import Inches, Miles, Pounds
+from jeepdolly.structures.inventory import Structure, StructureBook, StructureKind
 
 STEER = Axle(AxleKind.STEER, Pounds(12000), tires=2, tire_width=Inches(16))
 
@@ -136,3 +139,36 @@ def road_log():
             )
         )
     return network
+
+
+#: ident, name, segment, kind, spans, built, operating, inventory, posted, clearance.
+STRUCTURES = [
+    ("1247", "Kennebec River", "US201-2", "bridge", (120, 120, 120), 1937, 132000, 88000, 0, 0),
+    ("1533", "Carrabassett Stream", "SA148-1", "bridge", (48,), 1954, 60000, 42000, 48000, 0),
+    ("2201", "Norridgewock overpass", "US2-1", "overpass", (), 1972, 0, 0, 0, 165),
+    ("3310", "Martin Stream", "SR43-1", "culvert", (14,), 1968, 90000, 70000, 0, 0),
+    ("4102", "Pittsfield gantry", "I95-2", "sign gantry", (), 1998, 0, 0, 0, 198),
+    ("5006", "Sandy River", "SR8-1", "bridge", (90, 90), 1961, 110000, 76000, 0, 0),
+]
+
+
+def structure_book():
+    """Six structures on the test network, two of them worth worrying about."""
+    book = StructureBook()
+    for ident, name, segment, kind, spans, built, operating, inventory, posted, high in STRUCTURES:
+        book.add(
+            Structure(
+                ident,
+                name,
+                segment,
+                StructureKind(kind),
+                spans_feet=spans,
+                built=built,
+                inspected=date(2024, 6, 1),
+                operating_rating=Pounds(operating) if operating else None,
+                inventory_rating=Pounds(inventory) if inventory else None,
+                posted=Pounds(posted) if posted else None,
+                clearance=Inches(high) if high else None,
+            )
+        )
+    return book
