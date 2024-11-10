@@ -13,10 +13,15 @@ person can check a route by hand and big enough that the router has to work.
 from datetime import date
 
 from jeepdolly.domain.axle import Axle, AxleKind
+from jeepdolly.domain.combination import Combination, Unit, UnitKind
+from jeepdolly.domain.commodity import Piece
+from jeepdolly.domain.commodity import standard_book as standard_commodities
+from jeepdolly.domain.envelope import Envelope
 from jeepdolly.domain.highway import Jurisdiction, Route
 from jeepdolly.domain.network import Network, Node, Segment
 from jeepdolly.domain.stream import AxleStream
 from jeepdolly.measure import Inches, Miles, Pounds
+from jeepdolly.permits.application import Applicant, Application
 from jeepdolly.structures.inventory import Structure, StructureBook, StructureKind
 
 STEER = Axle(AxleKind.STEER, Pounds(12000), tires=2, tire_width=Inches(16))
@@ -150,6 +155,38 @@ STRUCTURES = [
     ("4102", "Pittsfield gantry", "I95-2", "sign gantry", (), 1998, 0, 0, 0, 198),
     ("5006", "Sandy River", "SR8-1", "bridge", (90, 90), 1961, 110000, 76000, 0, 0),
 ]
+
+
+def a_combination(stream=None, envelope=None):
+    """Tractor and lowboy, plated, with the axle counts made to agree."""
+    stream = stream or tractor_lowboy()
+    counts = {6: (3, 3), 9: (3, 2, 3, 1), 5: (3, 2), 3: (2, 1)}[stream.count]
+    kinds = [UnitKind.TRACTOR, UnitKind.JEEP, UnitKind.LOWBOY, UnitKind.BOOSTER]
+    if len(counts) == 2:
+        kinds = [UnitKind.TRACTOR, UnitKind.LOWBOY]
+    units = tuple(
+        Unit(kind, axles, f"ME {4470 + index}", Pounds(9000 * axles))
+        for index, (kind, axles) in enumerate(zip(kinds, counts, strict=True))
+    )
+    return Combination(units, stream, envelope or Envelope.read("12'", "13'6", "82'", "0", "6'"))
+
+
+def an_application(reference="25-04471", **kw):
+    """A filed application for the excavator move everybody argues about."""
+    fields = {
+        "usdot": 1204471,
+        "commodity": "EXCV",
+        "pieces": (Piece(standard_commodities().get("EXCV"), "Cat 336 excavator", "TMD01297"),),
+        "combination": a_combination(),
+        "origin": "waterville",
+        "destination": "pittsfield",
+        "start": date(2025, 4, 8),
+        "end": date(2025, 4, 10),
+        "applicant": Applicant("Dana Bickford", "207 555 0143"),
+        "filed": date(2025, 4, 7),
+    }
+    fields.update(kw)
+    return Application(reference, **fields)
 
 
 def structure_book():
