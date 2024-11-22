@@ -12,16 +12,26 @@ person can check a route by hand and big enough that the router has to work.
 
 from datetime import date
 
+from jeepdolly.conditions.library import standard_library
 from jeepdolly.domain.axle import Axle, AxleKind
+from jeepdolly.domain.carrier import Bond, Carrier, CarrierRegister, Insurance
 from jeepdolly.domain.combination import Combination, Unit, UnitKind
 from jeepdolly.domain.commodity import Piece
 from jeepdolly.domain.commodity import standard_book as standard_commodities
 from jeepdolly.domain.envelope import Envelope
 from jeepdolly.domain.highway import Jurisdiction, Route
 from jeepdolly.domain.network import Network, Node, Segment
+from jeepdolly.domain.restriction import RestrictionBook
 from jeepdolly.domain.stream import AxleStream
+from jeepdolly.fees.schedule import standard_book as standard_schedules
+from jeepdolly.limits.size import standard_book as standard_sizes
+from jeepdolly.limits.statutory import standard_book as standard_statutes
 from jeepdolly.measure import Inches, Miles, Pounds
+from jeepdolly.money import Dollars
 from jeepdolly.permits.application import Applicant, Application
+from jeepdolly.permits.issue import Office
+from jeepdolly.permits.numbering import Numbering
+from jeepdolly.seasons import SeasonBook
 from jeepdolly.structures.inventory import Structure, StructureBook, StructureKind
 
 STEER = Axle(AxleKind.STEER, Pounds(12000), tires=2, tire_width=Inches(16))
@@ -65,7 +75,9 @@ def make_stream(weights, spacings, kinds=None):
     """A stream from bare numbers, which is how the tests talk about one."""
     kinds = kinds or [AxleKind.TRAILER] * len(weights)
     axles = tuple(
-        Axle(kind, Pounds(weight), tires=2 if kind is AxleKind.STEER else 4)
+        Axle(kind, Pounds(weight), tires=2, tire_width=Inches(16))
+        if kind is AxleKind.STEER
+        else Axle(kind, Pounds(weight))
         for kind, weight in zip(kinds, weights, strict=True)
     )
     return AxleStream(axles, tuple(Inches(gap) for gap in spacings))
@@ -155,6 +167,39 @@ STRUCTURES = [
     ("4102", "Pittsfield gantry", "I95-2", "sign gantry", (), 1998, 0, 0, 0, 198),
     ("5006", "Sandy River", "SR8-1", "bridge", (90, 90), 1961, 110000, 76000, 0, 0),
 ]
+
+
+def a_carrier_register():
+    """One carrier in good standing and one that is not."""
+    register = CarrierRegister()
+    cover = Insurance(
+        "CA-88214", "Acadia Mutual", Dollars.of(1000000), date(2025, 1, 1), date(2025, 12, 31)
+    )
+    bond = Bond(
+        "SB-4471", "Penobscot Surety", Dollars.of(25000), date(2025, 1, 1), date(2025, 12, 31)
+    )
+    register.add(
+        Carrier(1204471, "Bickford Heavy Haul", "Newport", "ME", insurance=cover, bond=bond)
+    )
+    register.add(Carrier(2299001, "Aroostook Crane Service", "Presque Isle", "ME"))
+    return register
+
+
+def an_office(restrictions=None, seasons=None):
+    """The whole office wired up against the test network."""
+    return Office(
+        network=road_log(),
+        restrictions=restrictions or RestrictionBook(),
+        seasons=seasons or SeasonBook(),
+        statutes=standard_statutes(),
+        sizes=standard_sizes(),
+        commodities=standard_commodities(),
+        carriers=a_carrier_register(),
+        structures=structure_book(),
+        schedules=standard_schedules(),
+        library=standard_library(),
+        numbering=Numbering(),
+    )
 
 
 def a_combination(stream=None, envelope=None):
