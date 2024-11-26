@@ -5,6 +5,7 @@ from datetime import date
 import pytest
 
 from jeepdolly.conditions.library import standard_library
+from jeepdolly.domain.envelope import Envelope
 from jeepdolly.errors import Impossible, NotAllowed
 from jeepdolly.fees.price import Quote
 from jeepdolly.measure import Miles, Pounds
@@ -31,6 +32,7 @@ def a_permit(**kw):
         "route": ("US201-1", "US201-2", "SA148-2", "SR43-1"),
         "narrative": "from Waterville, US 201 to Skowhegan, SA 148 to Canaan",
         "gross": Pounds(94000),
+        "envelope": Envelope.read("12'", "13'6", "82'"),
         "distance": Miles.of(35, 20),
         "conditions": (LIBRARY.render("R-01"), LIBRARY.render("G-01")),
         "quote": Quote((), "schedule of 2024-01-01"),
@@ -129,4 +131,5 @@ def test_the_printed_face_is_what_the_officer_reads_first():
     face = a_permit().face().splitlines()
     assert face[0] == "25-P-004471  Bickford Heavy Haul (1204471)"
     assert face[1] == "Waterville to Pittsfield, 35.20 mi"
-    assert face[2] == "94,000 lb gross, 2025-04-08 to 2025-04-10"
+    assert face[2] == "12 ft wide, 13 ft 6 in high, 82 ft long"
+    assert face[3] == "94,000 lb gross, 2025-04-08 to 2025-04-10"

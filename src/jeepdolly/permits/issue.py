@@ -284,6 +284,7 @@ def issue(office: Office, assessment: Assessment, on: date) -> Permit:
         route=itinerary.idents,
         narrative=itinerary.narrative(),
         gross=application.gross,
+        envelope=application.combination.envelope,
         distance=itinerary.distance,
         conditions=assessment.conditions,
         quote=quote,

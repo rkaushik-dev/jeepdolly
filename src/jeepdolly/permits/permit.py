@@ -31,6 +31,7 @@ from datetime import date
 from enum import Enum
 
 from ..conditions.library import Condition
+from ..domain.envelope import Envelope
 from ..errors import Impossible, NotAllowed
 from ..fees.price import Quote
 from ..measure import Miles, Pounds
@@ -64,6 +65,7 @@ class Permit:
     route: tuple[str, ...]
     narrative: str
     gross: Pounds
+    envelope: Envelope
     distance: Miles
     conditions: tuple[Condition, ...]
     quote: Quote
@@ -132,6 +134,7 @@ class Permit:
         return (
             f"{self.number}  {self.carrier_name} ({self.usdot})\n"
             f"{self.origin.title()} to {self.destination.title()}, {self.distance}\n"
+            f"{self.envelope}\n"
             f"{self.gross} gross, {self.start.isoformat()} to {self.end.isoformat()}"
         )
 
