@@ -5,9 +5,13 @@ imported is not on the metadata, and a table that is not on the metadata is
 one ``create_all`` quietly does not build, which is a bad afternoon.
 """
 
+from .network import NodeRow, RestrictionRow, SegmentRow
 from .reference import CommodityRow, ConditionTextRow
 
 __all__ = [
     "CommodityRow",
     "ConditionTextRow",
+    "NodeRow",
+    "RestrictionRow",
+    "SegmentRow",
 ]
