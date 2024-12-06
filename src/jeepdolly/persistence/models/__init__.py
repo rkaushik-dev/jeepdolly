@@ -7,11 +7,15 @@ one ``create_all`` quietly does not build, which is a bad afternoon.
 
 from .network import NodeRow, RestrictionRow, SegmentRow
 from .reference import CommodityRow, ConditionTextRow
+from .structures import ReviewMoveRow, ReviewRow, StructureRow
 
 __all__ = [
     "CommodityRow",
     "ConditionTextRow",
     "NodeRow",
     "RestrictionRow",
+    "ReviewMoveRow",
+    "ReviewRow",
     "SegmentRow",
+    "StructureRow",
 ]
