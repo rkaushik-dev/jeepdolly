@@ -68,6 +68,12 @@ class ApplicationRow(Base):
     front_overhang = mapped_column(InchesType)
     rear_overhang = mapped_column(InchesType)
 
+    # These two are here to order the inserts, not because anything reads
+    # them. Without a relationship the unit of work writes the application
+    # before the carrier it points at, and the foreign key fails.
+    carrier = relationship("CarrierRow")
+    commodity_line = relationship("CommodityRow")
+
     axles: Mapped[list[ApplicationAxleRow]] = relationship(
         back_populates="application",
         cascade="all, delete-orphan",
@@ -154,6 +160,7 @@ class ApplicationPieceRow(Base):
     serial: Mapped[str | None] = mapped_column(String(CODE_LENGTH), nullable=True)
 
     application: Mapped[ApplicationRow] = relationship(back_populates="pieces")
+    commodity_line = relationship("CommodityRow")
 
     def __repr__(self) -> str:
         return f"<ApplicationPieceRow {self.reference} {self.description}>"

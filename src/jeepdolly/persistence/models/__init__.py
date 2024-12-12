@@ -13,6 +13,7 @@ from .applications import (
 )
 from .carriers import BondRow, CarrierRow, InsuranceRow, SuspensionRow
 from .network import NodeRow, RestrictionRow, SegmentRow
+from .permits import CounterRow, FeeLineRow, PermitConditionRow, PermitRow
 from .reference import CommodityRow, ConditionTextRow
 from .structures import ReviewMoveRow, ReviewRow, StructureRow
 
@@ -25,8 +26,12 @@ __all__ = [
     "CarrierRow",
     "CommodityRow",
     "ConditionTextRow",
+    "CounterRow",
+    "FeeLineRow",
     "InsuranceRow",
     "NodeRow",
+    "PermitConditionRow",
+    "PermitRow",
     "RestrictionRow",
     "ReviewMoveRow",
     "ReviewRow",
