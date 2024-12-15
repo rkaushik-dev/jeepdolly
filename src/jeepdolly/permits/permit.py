@@ -73,7 +73,8 @@ class Permit:
     void_reason: str = ""
     superseded_by: PermitNumber | None = None
     supersedes: PermitNumber | None = None
-    history: list[tuple[date, str]] = field(default_factory=list)
+    # Not part of equality, for the same reason as on an application.
+    history: list[tuple[date, str]] = field(default_factory=list, compare=False, repr=False)
 
     def __post_init__(self) -> None:
         if self.end < self.start:

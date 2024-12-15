@@ -93,7 +93,11 @@ class Application:
     route: tuple[str, ...] = ()
     state: ApplicationState = ApplicationState.DRAFT
     notes: str = ""
-    history: list[tuple[date, ApplicationState, str]] = field(default_factory=list)
+    # Not part of equality. Two applications are the same application when they
+    # ask for the same thing, whatever has happened to each of them since.
+    history: list[tuple[date, ApplicationState, str]] = field(
+        default_factory=list, compare=False, repr=False
+    )
 
     def __post_init__(self) -> None:
         if not self.reference.strip():

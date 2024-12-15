@@ -108,6 +108,7 @@ class PermitConditionRow(Base):
     code: Mapped[str] = mapped_column(String(CODE_LENGTH))
     category: Mapped[str] = mapped_column(String(CODE_LENGTH))
     body: Mapped[str] = mapped_column(Text(TEXT_LENGTH))
+    print_order: Mapped[int] = mapped_column(Integer, default=50)
 
     permit: Mapped[PermitRow] = relationship(back_populates="conditions")
 

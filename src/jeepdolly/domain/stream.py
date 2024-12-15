@@ -153,5 +153,18 @@ class AxleStream:
     def __len__(self) -> int:
         return len(self.axles)
 
+    def __eq__(self, other: object) -> bool:
+        """Two streams are the same stream when the axles and gaps match.
+
+        This is wanted by the round trip through the database and by the
+        amendment check, both of which ask whether the combination moved.
+        """
+        if not isinstance(other, AxleStream):
+            return NotImplemented
+        return self.axles == other.axles and self.spacings == other.spacings
+
+    def __hash__(self) -> int:
+        return hash((self.axles, self.spacings))
+
     def __repr__(self) -> str:
         return f"AxleStream({self.count} axles, {self.gross}, {self.extent})"
