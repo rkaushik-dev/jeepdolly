@@ -23,6 +23,7 @@ from jeepdolly.domain.highway import Jurisdiction, Route
 from jeepdolly.domain.network import Network, Node, Segment
 from jeepdolly.domain.restriction import RestrictionBook
 from jeepdolly.domain.stream import AxleStream
+from jeepdolly.fees.price import Line, Quote
 from jeepdolly.fees.schedule import standard_book as standard_schedules
 from jeepdolly.limits.size import standard_book as standard_sizes
 from jeepdolly.limits.statutory import standard_book as standard_statutes
@@ -30,7 +31,8 @@ from jeepdolly.measure import Inches, Miles, Pounds
 from jeepdolly.money import Dollars
 from jeepdolly.permits.application import Applicant, Application
 from jeepdolly.permits.issue import Office
-from jeepdolly.permits.numbering import Numbering
+from jeepdolly.permits.numbering import Numbering, PermitNumber, Series
+from jeepdolly.permits.permit import Permit
 from jeepdolly.seasons import SeasonBook
 from jeepdolly.structures.inventory import Structure, StructureBook, StructureKind
 
@@ -232,6 +234,37 @@ def an_application(reference="25-04471", **kw):
     }
     fields.update(kw)
     return Application(reference, **fields)
+
+
+def a_permit(application, **kw):
+    """An issued permit for an application, priced and conditioned."""
+    library = standard_library()
+    fields = {
+        "number": PermitNumber(2025, Series.SINGLE, 4471),
+        "application": application.reference,
+        "usdot": application.usdot,
+        "carrier_name": "Bickford Heavy Haul",
+        "issued": application.filed,
+        "start": application.start,
+        "end": application.end,
+        "origin": application.origin,
+        "destination": application.destination,
+        "route": ("US201-1", "US201-2", "SA148-2", "SR43-1"),
+        "narrative": "from Waterville, US 201 to Skowhegan",
+        "gross": application.gross,
+        "envelope": application.combination.envelope,
+        "distance": Miles.of(35, 20),
+        "conditions": (library.render("R-01"), library.render("G-01")),
+        "quote": Quote(
+            (
+                Line("ordinary permit", Dollars.of(40)),
+                Line("34 miles on arterial", Dollars.of(6, 12)),
+            ),
+            "schedule of 2024-01-01",
+        ),
+    }
+    fields.update(kw)
+    return Permit(**fields)
 
 
 def structure_book():
