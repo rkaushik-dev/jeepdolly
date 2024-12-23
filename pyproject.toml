@@ -13,11 +13,15 @@ authors = [{ name = "rkaushik-dev" }]
 dependencies = [
   "SQLAlchemy==2.0.38",
   "alembic==1.14.1",
+  "fastapi==0.115.8",
+  "pydantic==2.10.6",
+  "uvicorn[standard]==0.34.0",
 ]
 
 [project.optional-dependencies]
 dev = [
   "pytest==8.3.4",
+  "httpx==0.28.1",
   "ruff==0.9.6",
   "mypy==1.15.0",
 ]
@@ -39,6 +43,9 @@ src = ["src", "tests"]
 select = ["E", "F", "I", "B", "UP", "C4", "SIM", "RET"]
 
 [tool.ruff.lint.per-file-ignores]
+# Routes declare their query parameters and bodies as call defaults. That is
+# the framework calling convention and there is no other way to write it.
+"src/jeepdolly/api/*" = ["B008"]
 # A test that a constructor refuses has to evaluate the expression on its own.
 "tests/*" = ["B018"]
 # A migration is generated, and a check constraint is read as one line of SQL.
