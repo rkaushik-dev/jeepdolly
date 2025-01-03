@@ -33,6 +33,16 @@ from jeepdolly.permits.application import Applicant, Application
 from jeepdolly.permits.issue import Office
 from jeepdolly.permits.numbering import Numbering, PermitNumber, Series
 from jeepdolly.permits.permit import Permit
+from jeepdolly.persistence.base import create_all, memory_engine, session_factory
+from jeepdolly.persistence.models import (
+    BondRow,
+    CarrierRow,
+    CommodityRow,
+    InsuranceRow,
+    NodeRow,
+    SegmentRow,
+    StructureRow,
+)
 from jeepdolly.seasons import SeasonBook
 from jeepdolly.structures.inventory import Structure, StructureBook, StructureKind
 
@@ -234,6 +244,41 @@ def an_application(reference="25-04471", **kw):
     }
     fields.update(kw)
     return Application(reference, **fields)
+
+
+def seed(session):
+    """Everything the reference tables hold, so an office can be built."""
+    book = standard_commodities()
+    for code in book.codes():
+        session.add(CommodityRow.of(book.get(code)))
+    register = a_carrier_register()
+    for usdot in (1204471, 2299001):
+        session.add(CarrierRow.of(register.get(usdot)))
+        carrier = register.get(usdot)
+        if carrier.insurance:
+            session.add(InsuranceRow.of(usdot, carrier.insurance))
+        if carrier.bond:
+            session.add(BondRow.of(usdot, carrier.bond))
+    network = road_log()
+    for node in network.nodes():
+        session.add(NodeRow.of(node))
+    for segment in network.segments():
+        session.add(SegmentRow.of(segment))
+    session.commit()
+    for structure in structure_book().on_segments(tuple(one.ident for one in network.segments())):
+        session.add(StructureRow.of(structure))
+    session.commit()
+    return session
+
+
+def a_seeded_database():
+    """An engine with the reference tables filled and a factory over it."""
+    engine = memory_engine()
+    create_all(engine)
+    factory = session_factory(engine)
+    with factory() as opened:
+        seed(opened)
+    return factory
 
 
 def a_permit(application, **kw):
