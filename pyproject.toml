@@ -33,6 +33,11 @@ where = ["src"]
 testpaths = ["tests"]
 pythonpath = ["src", "tests"]
 addopts = "-q"
+filterwarnings = [
+  # Starlette's test client still reaches for an anyio alias anyio has
+  # deprecated. Not ours to fix and not worth reading on every run.
+  "ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning",
+]
 
 [tool.ruff]
 line-length = 100

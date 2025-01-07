@@ -52,6 +52,9 @@ class Series(str, Enum):
     ANNUAL = "A"
     SUPERLOAD = "S"
     REPLACEMENT = "R"
+    #: Not a permit at all. An application reference, off the same counter so
+    #: that a clerk reading one out cannot confuse it with a permit number.
+    FILE = "F"
 
     def __str__(self) -> str:
         return self.value
