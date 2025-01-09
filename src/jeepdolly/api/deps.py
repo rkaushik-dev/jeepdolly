@@ -119,7 +119,9 @@ def office_from(work: UnitOfWork, on: date | None = None) -> Office:
         structures=structures_from(session),
         schedules=standard_schedules(),
         library=standard_library(),
-        numbering=Numbering(),
+        # The counter is the one in the database, inside this transaction, so
+        # a number taken and not committed is handed out again.
+        numbering=Numbering(work.counter),
     )
 
 

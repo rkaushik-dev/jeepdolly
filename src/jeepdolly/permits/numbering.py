@@ -30,6 +30,7 @@ import threading
 from dataclasses import dataclass
 from datetime import date
 from enum import Enum
+from typing import Protocol
 
 from ..errors import Conflict, Impossible, Unreadable
 
@@ -115,11 +116,24 @@ class Counter:
         return self.peek(year, series) - FIRST_SEQUENCE
 
 
+class Sequences(Protocol):
+    """Anything that will hand out the next sequence, one at a time.
+
+    The in memory counter above and the locked row in the database both
+    satisfy this, which is what lets the office be assembled the same way for
+    a test and for a live request.
+    """
+
+    def take(self, year: int, series: Series) -> int: ...
+
+    def issued(self, year: int, series: Series) -> int: ...
+
+
 class Numbering:
     """The office numbering, which is a counter and the rules around it."""
 
-    def __init__(self, counter: Counter | None = None) -> None:
-        self.counter = counter or Counter()
+    def __init__(self, counter: Sequences | None = None) -> None:
+        self.counter: Sequences = counter or Counter()
 
     def next_number(self, on: date, series: Series = Series.SINGLE) -> PermitNumber:
         return PermitNumber(on.year, series, self.counter.take(on.year, series))
