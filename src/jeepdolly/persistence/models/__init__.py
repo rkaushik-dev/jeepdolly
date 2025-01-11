@@ -5,6 +5,7 @@ imported is not on the metadata, and a table that is not on the metadata is
 one ``create_all`` quietly does not build, which is a bad afternoon.
 """
 
+from .access import ApiKeyRow
 from .applications import (
     ApplicationAxleRow,
     ApplicationPieceRow,
@@ -18,6 +19,7 @@ from .reference import CommodityRow, ConditionTextRow
 from .structures import ReviewMoveRow, ReviewRow, StructureRow
 
 __all__ = [
+    "ApiKeyRow",
     "ApplicationAxleRow",
     "ApplicationPieceRow",
     "ApplicationRow",

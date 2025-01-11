@@ -51,8 +51,10 @@ select = ["E", "F", "I", "B", "UP", "C4", "SIM", "RET"]
 # Routes declare their query parameters and bodies as call defaults. That is
 # the framework calling convention and there is no other way to write it.
 "src/jeepdolly/api/*" = ["B008"]
-# A test that a constructor refuses has to evaluate the expression on its own.
-"tests/*" = ["B018"]
+# A test that a constructor refuses has to evaluate the expression on its own,
+# and a test that stands a route up declares its dependencies the way a route
+# does, which is as call defaults.
+"tests/*" = ["B018", "B008"]
 # A migration is generated, and a check constraint is read as one line of SQL.
 # Wrapping one makes it harder to compare against the model it came from.
 "migrations/*" = ["E501"]
