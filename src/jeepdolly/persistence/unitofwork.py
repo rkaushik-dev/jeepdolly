@@ -111,6 +111,16 @@ class UnitOfWork:
         return self.session
 
     @property
+    def db(self) -> Session:
+        """The open session, for the few callers that write rows directly.
+
+        The audit trail is the reason this exists. Everything else goes
+        through a repository, and a caller reaching for this to run a query
+        is a caller that wants a repository method instead.
+        """
+        return self._require()
+
+    @property
     def carriers(self) -> CarrierRepository:
         return CarrierRepository(self._require())
 

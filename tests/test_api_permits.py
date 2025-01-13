@@ -1,10 +1,8 @@
 """The permit routes, over a real database."""
 
 import pytest
-from fastapi.testclient import TestClient
 
-from jeepdolly.api.app import create_app
-from support import a_seeded_database
+from support import keyed_client
 
 FILED = "2025-04-07"
 START = "2025-04-08"
@@ -12,7 +10,7 @@ START = "2025-04-08"
 
 @pytest.fixture
 def client():
-    return TestClient(create_app(a_seeded_database()))
+    return keyed_client()
 
 
 def body(**kw):

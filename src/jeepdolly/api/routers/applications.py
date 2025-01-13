@@ -22,8 +22,10 @@ from ...permits.application import Application, ApplicationState
 from ...permits.issue import Assessment, assess
 from ...permits.numbering import Series
 from ...persistence.unitofwork import UnitOfWork
+from ...services import audit
 from ..deps import office_from, unit_of_work
 from ..schemas import ApplicationIn, ApplicationOut, AssessmentOut, ConditionOut, QuoteOut
+from ..security import Caller, Role, needs
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -38,6 +40,7 @@ def file_application(
     body: ApplicationIn,
     filed: date | None = Query(default=None),
     work: UnitOfWork = Depends(unit_of_work),
+    who: Caller = Depends(needs(Role.CLERK)),
 ) -> ApplicationOut:
     """Take an application in and give it a reference."""
     day = filed or date.today()
@@ -45,6 +48,14 @@ def file_application(
     reference = next_reference(work, day)
     application = body.to_domain(reference, day, book)
     work.applications.add(application)
+    audit.record(
+        work.db,
+        "application.filed",
+        who.person,
+        "application",
+        reference,
+        detail=f"{application.origin} to {application.destination}",
+    )
     work.commit()
     return ApplicationOut.of(application)
 
@@ -53,6 +64,7 @@ def file_application(
 def read_application(
     reference: str,
     work: UnitOfWork = Depends(unit_of_work),
+    who: Caller = Depends(needs(Role.READER)),
 ) -> ApplicationOut:
     """One application as it was submitted."""
     return ApplicationOut.of(work.applications.get(reference))
@@ -62,6 +74,7 @@ def read_application(
 def list_applications(
     state: str = Query(default="submitted"),
     work: UnitOfWork = Depends(unit_of_work),
+    who: Caller = Depends(needs(Role.READER)),
 ) -> list[ApplicationOut]:
     """The queue, by state, oldest first."""
     try:
@@ -77,11 +90,13 @@ def submit_application(
     reference: str,
     on: date | None = Query(default=None),
     work: UnitOfWork = Depends(unit_of_work),
+    who: Caller = Depends(needs(Role.CLERK)),
 ) -> ApplicationOut:
     """Move an application out of draft and into the queue."""
     application = work.applications.get(reference)
     application.submit(on or date.today())
     work.applications.save_state(application)
+    audit.record(work.db, "application.submitted", who.person, "application", reference)
     work.commit()
     return ApplicationOut.of(application)
 
@@ -91,11 +106,13 @@ def withdraw_application(
     reference: str,
     on: date | None = Query(default=None),
     work: UnitOfWork = Depends(unit_of_work),
+    who: Caller = Depends(needs(Role.CLERK)),
 ) -> ApplicationOut:
     """The carrier rang up and cancelled."""
     application = work.applications.get(reference)
     application.withdraw(on or date.today())
     work.applications.save_state(application)
+    audit.record(work.db, "application.withdrawn", who.person, "application", reference)
     work.commit()
     return ApplicationOut.of(application)
 
@@ -105,6 +122,7 @@ def assess_application(
     reference: str,
     on: date | None = Query(default=None),
     work: UnitOfWork = Depends(unit_of_work),
+    who: Caller = Depends(needs(Role.READER)),
 ) -> AssessmentOut:
     """What the office makes of it, without deciding anything yet.
 

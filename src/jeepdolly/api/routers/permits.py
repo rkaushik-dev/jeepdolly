@@ -21,8 +21,10 @@ from fastapi import APIRouter, Depends, Query
 
 from ...permits.issue import assess, issue
 from ...persistence.unitofwork import UnitOfWork
+from ...services import audit
 from ..deps import office_from, unit_of_work
 from ..schemas import PermitOut
+from ..security import Caller, Role, needs
 
 router = APIRouter(prefix="/permits", tags=["permits"])
 
@@ -32,6 +34,7 @@ def issue_permit(
     reference: str = Query(...),
     on: date | None = Query(default=None),
     work: UnitOfWork = Depends(unit_of_work),
+    who: Caller = Depends(needs(Role.CLERK)),
 ) -> PermitOut:
     """Assess an application again and issue against it."""
     application = work.applications.get(reference)
@@ -41,12 +44,24 @@ def issue_permit(
     permit = issue(desk, found, day)
     work.applications.save_state(application)
     work.permits.add(permit)
+    audit.record(
+        work.db,
+        "permit.issued",
+        who.person,
+        "permit",
+        str(permit.number),
+        detail=f"{permit.gross} to {permit.carrier_name}",
+    )
     work.commit()
     return PermitOut.of(permit)
 
 
 @router.get("/{number}", response_model=PermitOut)
-def read_permit(number: str, work: UnitOfWork = Depends(unit_of_work)) -> PermitOut:
+def read_permit(
+    number: str,
+    work: UnitOfWork = Depends(unit_of_work),
+    who: Caller = Depends(needs(Role.READER)),
+) -> PermitOut:
     """One permit, complete, as it was printed."""
     return PermitOut.of(work.permits.get(number))
 
@@ -55,6 +70,7 @@ def read_permit(number: str, work: UnitOfWork = Depends(unit_of_work)) -> Permit
 def permits_on_the_road(
     day: date | None = Query(default=None),
     work: UnitOfWork = Depends(unit_of_work),
+    who: Caller = Depends(needs(Role.READER)),
 ) -> list[PermitOut]:
     """Everything valid for travel on a day."""
     rows = work.permits.on_the_road(day or date.today())
@@ -66,6 +82,7 @@ def expiring_permits(
     day: date | None = Query(default=None),
     within: int = Query(default=2, ge=0, le=60),
     work: UnitOfWork = Depends(unit_of_work),
+    who: Caller = Depends(needs(Role.READER)),
 ) -> list[PermitOut]:
     """What the office rings about on a Friday afternoon."""
     start = day or date.today()
@@ -79,17 +96,23 @@ def void_permit(
     reason: str = Query(..., min_length=3),
     on: date | None = Query(default=None),
     work: UnitOfWork = Depends(unit_of_work),
+    who: Caller = Depends(needs(Role.SUPERVISOR)),
 ) -> PermitOut:
     """Kill a permit, with the reason on the record."""
     permit = work.permits.get(number)
     permit.void(on or date.today(), reason)
     work.permits.save_state(permit)
+    audit.record(work.db, "permit.voided", who.person, "permit", number, detail=reason)
     work.commit()
     return PermitOut.of(permit)
 
 
 @router.get("/carrier/{usdot}", response_model=list[PermitOut])
-def permits_for_carrier(usdot: int, work: UnitOfWork = Depends(unit_of_work)) -> list[PermitOut]:
+def permits_for_carrier(
+    usdot: int,
+    work: UnitOfWork = Depends(unit_of_work),
+    who: Caller = Depends(needs(Role.READER)),
+) -> list[PermitOut]:
     """What one carrier has out, newest first."""
     rows = work.permits.for_carrier(usdot)
     return [PermitOut.of(work.permits.get(one.number)) for one in rows]

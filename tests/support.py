@@ -12,6 +12,10 @@ person can check a route by hand and big enough that the router has to work.
 
 from datetime import date
 
+from fastapi.testclient import TestClient
+
+from jeepdolly.api.app import create_app
+from jeepdolly.api.security import HEADER, Role, issue_key
 from jeepdolly.conditions.library import standard_library
 from jeepdolly.domain.axle import Axle, AxleKind
 from jeepdolly.domain.carrier import Bond, Carrier, CarrierRegister, Insurance
@@ -43,6 +47,7 @@ from jeepdolly.persistence.models import (
     SegmentRow,
     StructureRow,
 )
+from jeepdolly.persistence.unitofwork import UnitOfWork
 from jeepdolly.seasons import SeasonBook
 from jeepdolly.structures.inventory import Structure, StructureBook, StructureKind
 
@@ -279,6 +284,26 @@ def a_seeded_database():
     with factory() as opened:
         seed(opened)
     return factory
+
+
+def keys_for(factory):
+    """One live key for each role, so a test can pick who is asking."""
+    made = {}
+    with UnitOfWork(factory) as work:
+        for role in Role:
+            key, _ = issue_key(work, f"k-{role.value}", role.value.title(), role, date.today())
+            made[role] = key
+        work.commit()
+    return made
+
+
+def keyed_client(role=Role.SUPERVISOR, factory=None):
+    """A client over a seeded database, signed in as one role."""
+    factory = factory or a_seeded_database()
+    keys = keys_for(factory)
+    client = TestClient(create_app(factory))
+    client.headers[HEADER] = keys[role]
+    return client
 
 
 def a_permit(application, **kw):
