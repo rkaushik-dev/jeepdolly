@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from .. import __version__
 from ..persistence.unitofwork import UnitOfWork
 from . import errors
-from .routers import applications, permits
+from .routers import applications, permits, routes
 
 TITLE = "jeepdolly"
 DESCRIPTION = "Oversize and overweight permits for the motor carrier office"
@@ -36,6 +36,7 @@ def create_app(factory: sessionmaker[Session]) -> FastAPI:
     errors.install(app)
     app.include_router(applications.router)
     app.include_router(permits.router)
+    app.include_router(routes.router)
 
     @app.get("/health", tags=["service"])
     def health() -> dict[str, Any]:
