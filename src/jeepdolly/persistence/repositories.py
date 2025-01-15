@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from ..domain.carrier import Carrier
 from ..domain.commodity import CommodityBook
-from ..errors import NotOnFile
+from ..errors import Conflict, NotOnFile
 from ..permits.application import Application, ApplicationState
 from ..permits.permit import Permit, PermitState
 from .mappers import application_to_row, permit_to_row, row_to_application, row_to_permit
@@ -61,6 +61,14 @@ class CarrierRepository:
         return tuple(one for one in found if needle in one.name.lower())
 
     def add(self, carrier: Carrier) -> CarrierRow:
+        """File a new carrier, refusing a number that is already registered.
+
+        The database would refuse this too, with an integrity error at commit
+        time and a five hundred at the caller. The office would rather say
+        conflict, and say it before anything else in the transaction is done.
+        """
+        if self.session.get(CarrierRow, carrier.usdot) is not None:
+            raise Conflict(f"usdot {carrier.usdot} is already registered", usdot=carrier.usdot)
         row = CarrierRow.of(carrier)
         self.session.add(row)
         return row

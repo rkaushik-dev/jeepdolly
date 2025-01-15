@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from .. import __version__
 from ..persistence.unitofwork import UnitOfWork
 from . import errors
-from .routers import applications, permits, routes
+from .routers import applications, carriers, permits, routes
 
 TITLE = "jeepdolly"
 DESCRIPTION = "Oversize and overweight permits for the motor carrier office"
@@ -35,6 +35,7 @@ def create_app(factory: sessionmaker[Session]) -> FastAPI:
     app.state.sessions = factory
     errors.install(app)
     app.include_router(applications.router)
+    app.include_router(carriers.router)
     app.include_router(permits.router)
     app.include_router(routes.router)
 
