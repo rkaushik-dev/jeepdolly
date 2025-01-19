@@ -257,6 +257,12 @@ class NetworkRepository:
         found = self.session.scalars(query).all()
         return tuple(one for one in found if _in_force(one, day))
 
+    def structure(self, ident: str) -> StructureRow:
+        found = self.session.get(StructureRow, ident)
+        if found is None:
+            raise NotOnFile(f"no structure {ident}", structure=ident)
+        return found
+
     def structures_on(self, ident: str) -> tuple[StructureRow, ...]:
         query = (
             select(StructureRow)
