@@ -25,7 +25,10 @@ from jeepdolly.persistence.models import *  # noqa: F401,F403
 config = context.config
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # Without this, fileConfig switches off every logger that already exists,
+    # including the office logger, and a service that runs a migration on the
+    # way up comes up silent. It cost an afternoon to find the first time.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 

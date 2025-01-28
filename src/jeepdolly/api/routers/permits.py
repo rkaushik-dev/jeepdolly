@@ -19,6 +19,7 @@ from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, Query
 
+from ... import logs
 from ...permits.issue import assess, issue
 from ...persistence.unitofwork import UnitOfWork
 from ...services import audit
@@ -53,6 +54,14 @@ def issue_permit(
         detail=f"{permit.gross} to {permit.carrier_name}",
     )
     work.commit()
+    logs.event(
+        "permit.issued",
+        number=str(permit.number),
+        usdot=permit.usdot,
+        gross=permit.gross.value,
+        miles=permit.distance.rounded_up(),
+        by=who.person,
+    )
     return PermitOut.of(permit)
 
 
@@ -104,6 +113,7 @@ def void_permit(
     work.permits.save_state(permit)
     audit.record(work.db, "permit.voided", who.person, "permit", number, detail=reason)
     work.commit()
+    logs.event("permit.voided", number=number, by=who.person)
     return PermitOut.of(permit)
 
 
