@@ -83,7 +83,11 @@ def main(context: click.Context, database: str | None, quiet: bool) -> None:
         )
     if not quiet:
         logs.configure(stream=sys.stderr)
-    context.obj = Console(settings)
+    if context.obj is None:
+        # A caller that already has a console keeps it. That is how the tests
+        # run against an in memory database, and how a future daemon will run
+        # a command without opening a second connection pool.
+        context.obj = Console(settings)
 
 
 @main.command()
@@ -103,8 +107,18 @@ def build(console: Console) -> None:
     say("schema", "built", console.settings.safe_url)
 
 
+def load_commands() -> None:
+    """Import the command groups, which register themselves on the way in.
+
+    They import this module, so this cannot happen at the top of the file.
+    It happens once, at the entry point, before anything is parsed.
+    """
+    from . import permits  # noqa: F401
+
+
 def run() -> int:
     """The entry point, which turns a refusal into an exit code."""
+    load_commands()
     try:
         main.main(standalone_mode=False)
     except Refusal as refusal:
