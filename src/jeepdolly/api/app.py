@@ -30,6 +30,7 @@ from .routers import (
     permits,
     reports,
     routes,
+    seasons,
     structures,
 )
 
@@ -49,6 +50,7 @@ def create_app(factory: sessionmaker[Session]) -> FastAPI:
     app.include_router(permits.router)
     app.include_router(reports.router)
     app.include_router(routes.router)
+    app.include_router(seasons.router)
     app.include_router(structures.router)
 
     @app.get("/health", tags=["service"])

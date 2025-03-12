@@ -10,9 +10,9 @@ correct, it is simple, and the shape of the fix is already clear: the reference
 data changes twice a year and belongs behind a cache keyed on the day. That is
 a later change and it wants a measurement in front of it, not a guess.
 
-What is deliberately not cached is the restriction book and the carrier
-record. Those change during the day, and a permit written against yesterday's
-closure is exactly the failure this office cannot have.
+What is deliberately not cached is the restriction book, the carrier record
+and the seasonal orders. Those change during the day, and a permit written
+against yesterday's closure is exactly the failure this office cannot have.
 """
 
 from __future__ import annotations
@@ -35,8 +35,8 @@ from ..permits.numbering import Numbering
 from ..persistence.models.carriers import CarrierRow
 from ..persistence.models.network import NodeRow, RestrictionRow, SegmentRow
 from ..persistence.models.structures import StructureRow
+from ..persistence.seasonstore import book_from
 from ..persistence.unitofwork import UnitOfWork
-from ..seasons import SeasonBook
 from ..structures.inventory import StructureBook
 
 
@@ -111,7 +111,7 @@ def office_from(work: UnitOfWork, on: date | None = None) -> Office:
     return Office(
         network=network_from(session),
         restrictions=restrictions_from(session),
-        seasons=SeasonBook(),
+        seasons=book_from(session),
         statutes=standard_statutes(),
         sizes=standard_sizes(),
         commodities=work.commodities.book(day),
