@@ -29,6 +29,7 @@ from .routers import (
     carriers,
     permits,
     reports,
+    restrictions,
     routes,
     seasons,
     structures,
@@ -49,6 +50,7 @@ def create_app(factory: sessionmaker[Session]) -> FastAPI:
     app.include_router(carriers.router)
     app.include_router(permits.router)
     app.include_router(reports.router)
+    app.include_router(restrictions.router)
     app.include_router(routes.router)
     app.include_router(seasons.router)
     app.include_router(structures.router)
