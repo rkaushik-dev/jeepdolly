@@ -113,7 +113,7 @@ def load_commands() -> None:
     They import this module, so this cannot happen at the top of the file.
     It happens once, at the entry point, before anything is parsed.
     """
-    from . import nightly, permits, reports  # noqa: F401
+    from . import network, nightly, permits, reports  # noqa: F401
 
 
 def run() -> int:
