@@ -19,6 +19,14 @@ from .permits import CounterRow, FeeLineRow, PermitConditionRow, PermitRow
 from .reference import CommodityRow, ConditionTextRow
 from .seasons import SeasonOrderRow
 from .structures import ReviewMoveRow, ReviewRow, StructureRow
+from .tariff import (
+    BaseFeeRow,
+    MileFeeRow,
+    ScheduleRow,
+    SizeRow,
+    StatutoryRow,
+    WeightStepRow,
+)
 
 __all__ = [
     "ApiKeyRow",
@@ -27,6 +35,7 @@ __all__ = [
     "ApplicationRow",
     "ApplicationUnitRow",
     "AuditRow",
+    "BaseFeeRow",
     "BondRow",
     "CarrierRow",
     "CommodityRow",
@@ -34,6 +43,7 @@ __all__ = [
     "CounterRow",
     "FeeLineRow",
     "InsuranceRow",
+    "MileFeeRow",
     "NodeRow",
     "PermitConditionRow",
     "PermitRow",
@@ -41,7 +51,11 @@ __all__ = [
     "ReviewMoveRow",
     "ReviewRow",
     "SeasonOrderRow",
+    "ScheduleRow",
     "SegmentRow",
+    "SizeRow",
+    "StatutoryRow",
     "StructureRow",
     "SuspensionRow",
+    "WeightStepRow",
 ]
