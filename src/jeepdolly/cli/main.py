@@ -31,6 +31,7 @@ from .. import __version__, logs
 from ..config import Settings, from_environment
 from ..errors import Refusal
 from ..persistence.base import create_all, engine_for, session_factory
+from ..persistence.tariffstore import seed, seeded
 from ..persistence.unitofwork import UnitOfWork
 
 REFUSED = 1
@@ -102,8 +103,13 @@ def health(console: Console) -> None:
 @main.command()
 @click.pass_obj
 def build(console: Console) -> None:
-    """Build the schema from the models. For a scratch database only."""
+    """Build the schema from the models and seed the published tables."""
     console.build()
+    with console.work() as work:
+        if not seeded(work.db):
+            seed(work.db)
+            work.commit()
+            say("tariff", "seeded")
     say("schema", "built", console.settings.safe_url)
 
 

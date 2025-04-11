@@ -47,6 +47,7 @@ from jeepdolly.persistence.models import (
     SegmentRow,
     StructureRow,
 )
+from jeepdolly.persistence.tariffstore import seed as seed_tariff
 from jeepdolly.persistence.unitofwork import UnitOfWork
 from jeepdolly.seasons import SeasonBook
 from jeepdolly.structures.inventory import Structure, StructureBook, StructureKind
@@ -283,6 +284,8 @@ def a_seeded_database():
     factory = session_factory(engine)
     with factory() as opened:
         seed(opened)
+        seed_tariff(opened)
+        opened.commit()
     return factory
 
 

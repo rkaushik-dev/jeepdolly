@@ -23,19 +23,24 @@ from datetime import date
 from fastapi import Depends, Request
 from sqlalchemy.orm import Session, sessionmaker
 
+from .. import logs
 from ..conditions.library import standard_library
 from ..domain.carrier import CarrierRegister
 from ..domain.network import Network, Node
 from ..domain.restriction import Curfew, Restriction, RestrictionBook
-from ..fees.schedule import standard_book as standard_schedules
-from ..limits.size import standard_book as standard_sizes
-from ..limits.statutory import standard_book as standard_statutes
+from ..fees.schedule import ScheduleBook
+from ..fees.schedule import standard_book as coded_schedules
+from ..limits.size import SizeBook
+from ..limits.size import standard_book as coded_sizes
+from ..limits.statutory import StatutoryBook
+from ..limits.statutory import standard_book as coded_statutes
 from ..permits.issue import Office
 from ..permits.numbering import Numbering
 from ..persistence.models.carriers import CarrierRow
 from ..persistence.models.network import NodeRow, RestrictionRow, SegmentRow
 from ..persistence.models.structures import StructureRow
 from ..persistence.seasonstore import book_from
+from ..persistence.tariffstore import schedule_book, size_book, statutory_book
 from ..persistence.unitofwork import UnitOfWork
 from ..structures.inventory import StructureBook
 
@@ -102,6 +107,39 @@ def carriers_from(session: Session, on: date) -> CarrierRegister:
     return register
 
 
+def statutes_for(session: Session) -> StatutoryBook:
+    """The statutory tables off the rows, or the coded ones on a bare database.
+
+    The fallback is not a convenience. A database that has not been seeded is
+    a database somebody is about to seed, and refusing every request until
+    they do would mean the office cannot answer a telephone call during an
+    install. It says so on the log, once per request, which is loud enough.
+    """
+    book = statutory_book(session)
+    if len(book):
+        return book
+    logs.trouble("tariff.unseeded", table="statutory_limits")
+    return coded_statutes()
+
+
+def sizes_for(session: Session, on: date) -> SizeBook:
+    """The size tables off the rows, or the coded ones on a bare database."""
+    book = size_book(session, on)
+    if len(book):
+        return book
+    logs.trouble("tariff.unseeded", table="size_limits")
+    return coded_sizes()
+
+
+def schedules_for(session: Session) -> ScheduleBook:
+    """The fee schedules off the rows, or the coded ones on a bare database."""
+    book = schedule_book(session)
+    if len(book):
+        return book
+    logs.trouble("tariff.unseeded", table="fee_schedules")
+    return coded_schedules()
+
+
 def office_from(work: UnitOfWork, on: date | None = None) -> Office:
     """Assemble the office from what is on file today."""
     session = work.session
@@ -112,12 +150,12 @@ def office_from(work: UnitOfWork, on: date | None = None) -> Office:
         network=network_from(session),
         restrictions=restrictions_from(session),
         seasons=book_from(session),
-        statutes=standard_statutes(),
-        sizes=standard_sizes(),
+        statutes=statutes_for(session),
+        sizes=sizes_for(session, day),
         commodities=work.commodities.book(day),
         carriers=carriers_from(session, day),
         structures=structures_from(session),
-        schedules=standard_schedules(),
+        schedules=schedules_for(session),
         library=standard_library(),
         # The counter is the one in the database, inside this transaction, so
         # a number taken and not committed is handed out again.

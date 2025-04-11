@@ -9,6 +9,7 @@ from jeepdolly.errors import Conflict
 from jeepdolly.limits.classify import PermitKind
 from jeepdolly.measure import Inches, Pounds
 from jeepdolly.money import Dollars
+from jeepdolly.persistence.base import create_all, memory_engine, session_factory
 from jeepdolly.persistence.models import StatutoryRow
 from jeepdolly.persistence.tariffstore import (
     FIRST,
@@ -26,15 +27,16 @@ MARCH = date(2025, 3, 3)
 
 @pytest.fixture
 def factory():
-    return a_seeded_database()
+    """A database with the schema and nothing filed on it."""
+    engine = memory_engine()
+    create_all(engine)
+    return session_factory(engine)
 
 
 @pytest.fixture
-def filled(factory):
-    with UnitOfWork(factory) as work:
-        seed(work.db)
-        work.commit()
-    return factory
+def filled():
+    """The database the rest of the suite runs against, tariff and all."""
+    return a_seeded_database()
 
 
 def test_a_fresh_database_has_no_tables_on_it(factory):

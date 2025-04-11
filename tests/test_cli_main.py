@@ -33,7 +33,10 @@ def test_the_help_names_what_the_office_does(runner):
 def test_building_a_scratch_database_and_reaching_it(runner, scratch):
     built = runner.invoke(main, ["--database", scratch, "--quiet", "build"])
     assert built.exit_code == 0
-    assert built.output.startswith("schema  built")
+    assert built.output.splitlines() == [
+        "tariff  seeded",
+        f"schema  built  {scratch}",
+    ]
     checked = runner.invoke(main, ["--database", scratch, "--quiet", "health"])
     assert checked.exit_code == 0
     assert checked.output.startswith("database  up")
