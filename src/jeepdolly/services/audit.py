@@ -43,6 +43,7 @@ ACTIONS = frozenset(
         "road.closed",
         "road.opened",
         "structure.posted",
+        "tariff.filed",
         "key.issued",
         "key.revoked",
     }
