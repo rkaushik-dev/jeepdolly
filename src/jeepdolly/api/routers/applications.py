@@ -1,14 +1,12 @@
-"""Application routes: file one, look at it, submit it, ask what it costs.
+"""Application routes, now that the sequence lives in the counter service.
 
-The routes here are thin on purpose. Each one reads a body, calls one thing in
-the domain, commits if that worked, and shapes the answer. There is no rule in
-this file and there is no arithmetic. Anything that looks like a decision is a
-mistake that should have been made in the domain.
+What is left in each route is the http and nothing else: the rung of the
+ladder it needs, the body it reads, the day it is deciding for, and the shape
+that goes back. The order of the office procedure moved to ``services.counter``
+and this file no longer knows it.
 
-Assessing is a GET and not a POST, and that is deliberate. Asking the office
-what a load would cost changes nothing, it is asked over and over while a
-hauler juggles routes on the telephone, and a client should be free to repeat
-it. Submitting changes the state of a document and is a POST.
+Assessing is still a GET, because asking what a load would cost changes
+nothing and a dispatcher asks it four times while a hauler holds the line.
 """
 
 from __future__ import annotations
@@ -19,20 +17,14 @@ from fastapi import APIRouter, Depends, Query
 
 from ...errors import Unreadable
 from ...permits.application import Application, ApplicationState
-from ...permits.issue import Assessment, assess
-from ...permits.numbering import Series
+from ...permits.issue import Assessment
 from ...persistence.unitofwork import UnitOfWork
-from ...services import audit
+from ...services import counter
 from ..deps import office_from, unit_of_work
 from ..schemas import ApplicationIn, ApplicationOut, AssessmentOut, ConditionOut, QuoteOut
 from ..security import Caller, Role, needs
 
 router = APIRouter(prefix="/applications", tags=["applications"])
-
-
-def next_reference(work: UnitOfWork, on: date) -> str:
-    """The office reference for a new application, off the same counter."""
-    return f"{on.year % 100:02d}-F-{work.counter.take(on.year, Series.FILE):06d}"
 
 
 @router.post("", response_model=ApplicationOut, status_code=201)
@@ -44,18 +36,9 @@ def file_application(
 ) -> ApplicationOut:
     """Take an application in and give it a reference."""
     day = filed or date.today()
-    book = work.commodities.book(day)
-    reference = next_reference(work, day)
-    application = body.to_domain(reference, day, book)
-    work.applications.add(application)
-    audit.record(
-        work.db,
-        "application.filed",
-        who.person,
-        "application",
-        reference,
-        detail=f"{application.origin} to {application.destination}",
-    )
+    reference = counter.next_reference(work, day)
+    application = body.to_domain(reference, day, work.commodities.book(day))
+    counter.file_application(work, application, who.person, day)
     work.commit()
     return ApplicationOut.of(application)
 
@@ -93,10 +76,7 @@ def submit_application(
     who: Caller = Depends(needs(Role.CLERK)),
 ) -> ApplicationOut:
     """Move an application out of draft and into the queue."""
-    application = work.applications.get(reference)
-    application.submit(on or date.today())
-    work.applications.save_state(application)
-    audit.record(work.db, "application.submitted", who.person, "application", reference)
+    application = counter.submit(work, reference, who.person, on or date.today())
     work.commit()
     return ApplicationOut.of(application)
 
@@ -109,10 +89,21 @@ def withdraw_application(
     who: Caller = Depends(needs(Role.CLERK)),
 ) -> ApplicationOut:
     """The carrier rang up and cancelled."""
-    application = work.applications.get(reference)
-    application.withdraw(on or date.today())
-    work.applications.save_state(application)
-    audit.record(work.db, "application.withdrawn", who.person, "application", reference)
+    application = counter.withdraw(work, reference, who.person, on or date.today())
+    work.commit()
+    return ApplicationOut.of(application)
+
+
+@router.post("/{reference}/refuse", response_model=ApplicationOut)
+def refuse_application(
+    reference: str,
+    reason: str = Query(..., min_length=3),
+    on: date | None = Query(default=None),
+    work: UnitOfWork = Depends(unit_of_work),
+    who: Caller = Depends(needs(Role.CLERK)),
+) -> ApplicationOut:
+    """Close an application the office will not write, with the reason."""
+    application = counter.refuse(work, reference, who.person, on or date.today(), reason)
     work.commit()
     return ApplicationOut.of(application)
 
@@ -124,15 +115,10 @@ def assess_application(
     work: UnitOfWork = Depends(unit_of_work),
     who: Caller = Depends(needs(Role.READER)),
 ) -> AssessmentOut:
-    """What the office makes of it, without deciding anything yet.
-
-    The office is built for the day being assessed rather than for today,
-    because a certificate that lapsed last week did not lapse on the day of
-    the move, and the answer has to be the answer for that day.
-    """
+    """What the office makes of it, without deciding anything yet."""
     application = work.applications.get(reference)
     day = on or application.start
-    return shape(application, assess(office_from(work, day), application, day))
+    return shape(application, counter.look_at(office_from(work, day), application, day))
 
 
 def shape(application: Application, found: Assessment) -> AssessmentOut:
