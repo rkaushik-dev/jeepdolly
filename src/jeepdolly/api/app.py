@@ -6,22 +6,18 @@ the environment anywhere in this file. A test builds one with an in memory
 database in a millisecond, the server builds one with a real engine, and
 neither knows about the other.
 
-The health route is deliberately dull and deliberately checks something. A
-health check that returns two hundred without touching the database tells the
-load balancer the process is alive while every request is failing, which is
-the worst answer it could give.
+It is a list of routers and nothing else now. The health route used to be
+written out in the middle of it, with its own unit of work built by hand,
+which is exactly the sort of thing that grows a second copy. It lives on the
+service router with the rest of the routes about the service itself.
 """
 
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import FastAPI
-from sqlalchemy import text
 from sqlalchemy.orm import Session, sessionmaker
 
 from .. import __version__
-from ..persistence.unitofwork import UnitOfWork
 from . import errors, requestlog
 from .routers import (
     annual,
@@ -32,12 +28,27 @@ from .routers import (
     restrictions,
     routes,
     seasons,
+    service,
     structures,
     tariff,
 )
 
 TITLE = "jeepdolly"
 DESCRIPTION = "Oversize and overweight permits for the motor carrier office"
+
+ROUTERS = (
+    service.router,
+    annual.router,
+    applications.router,
+    carriers.router,
+    permits.router,
+    reports.router,
+    restrictions.router,
+    routes.router,
+    seasons.router,
+    structures.router,
+    tariff.router,
+)
 
 
 def create_app(factory: sessionmaker[Session]) -> FastAPI:
@@ -46,24 +57,6 @@ def create_app(factory: sessionmaker[Session]) -> FastAPI:
     app.state.sessions = factory
     errors.install(app)
     requestlog.install(app)
-    app.include_router(annual.router)
-    app.include_router(applications.router)
-    app.include_router(carriers.router)
-    app.include_router(permits.router)
-    app.include_router(reports.router)
-    app.include_router(restrictions.router)
-    app.include_router(routes.router)
-    app.include_router(seasons.router)
-    app.include_router(structures.router)
-    app.include_router(tariff.router)
-
-    @app.get("/health", tags=["service"])
-    def health() -> dict[str, Any]:
-        """Alive, and able to reach the database it was given."""
-        with UnitOfWork(factory) as work:
-            session = work.session
-            assert session is not None
-            session.execute(text("select 1"))
-            return {"service": TITLE, "version": __version__, "database": "up"}
-
+    for router in ROUTERS:
+        app.include_router(router)
     return app
