@@ -16,6 +16,7 @@ from .audit import AuditRow
 from .carriers import BondRow, CarrierRow, InsuranceRow, SuspensionRow
 from .network import NodeRow, RestrictionRow, SegmentRow
 from .permits import CounterRow, FeeLineRow, PermitConditionRow, PermitRow
+from .receipts import ReceiptRow
 from .reference import CommodityRow, ConditionTextRow
 from .seasons import SeasonOrderRow
 from .structures import ReviewMoveRow, ReviewRow, StructureRow
@@ -47,6 +48,7 @@ __all__ = [
     "NodeRow",
     "PermitConditionRow",
     "PermitRow",
+    "ReceiptRow",
     "RestrictionRow",
     "ReviewMoveRow",
     "ReviewRow",
