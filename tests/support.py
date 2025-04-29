@@ -39,6 +39,7 @@ from jeepdolly.permits.numbering import Numbering, PermitNumber, Series
 from jeepdolly.permits.permit import Permit
 from jeepdolly.persistence.base import create_all, memory_engine, session_factory
 from jeepdolly.persistence.models import (
+    ApiKeyRow,
     BondRow,
     CarrierRow,
     CommodityRow,
@@ -290,11 +291,21 @@ def a_seeded_database():
 
 
 def keys_for(factory):
-    """One live key for each role, so a test can pick who is asking."""
+    """One live key for each role, so a test can pick who is asking.
+
+    Calling it twice on one database reissues rather than colliding. A key is
+    stored as a hash, so the old one cannot be handed back, and a test that
+    wants two clients wants two live keys and not an integrity error.
+    """
     made = {}
     with UnitOfWork(factory) as work:
         for role in Role:
-            key, _ = issue_key(work, f"k-{role.value}", role.value.title(), role, date.today())
+            ident = f"k-{role.value}"
+            standing = work.db.get(ApiKeyRow, ident)
+            if standing is not None:
+                work.db.delete(standing)
+                work.flush()
+            key, _ = issue_key(work, ident, role.value.title(), role, date.today())
             made[role] = key
         work.commit()
     return made
