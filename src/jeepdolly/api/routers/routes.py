@@ -20,7 +20,7 @@ from pydantic import BaseModel, Field
 from ...domain.envelope import Envelope
 from ...errors import NotOnFile
 from ...measure import Pounds
-from ...permits.issue import Office
+from ...permits.office import Office
 from ...routing.evaluate import evaluate
 from ...routing.itinerary import Itinerary
 from ...routing.mileage import chargeable

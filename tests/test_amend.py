@@ -10,7 +10,8 @@ from jeepdolly.errors import Impossible, NotAllowed
 from jeepdolly.measure import Pounds
 from jeepdolly.money import Dollars
 from jeepdolly.permits.amend import amend, changes_between
-from jeepdolly.permits.issue import assess, issue
+from jeepdolly.permits.assessment import assess
+from jeepdolly.permits.issue import issue
 from jeepdolly.permits.permit import PermitState
 from support import a_combination, an_application, an_office, make_stream
 

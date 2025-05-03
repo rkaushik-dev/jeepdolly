@@ -33,8 +33,9 @@ from datetime import date
 from ..errors import Impossible, NotAllowed
 from ..fees.price import Quote, amendment
 from .application import Application
-from .issue import Assessment, Office, assess
+from .assessment import Assessment, assess
 from .numbering import Series
+from .office import Office
 from .permit import Permit, PermitState
 
 

@@ -9,7 +9,8 @@ from jeepdolly.domain.restriction import Restriction, RestrictionBook, Restricti
 from jeepdolly.errors import NotAllowed
 from jeepdolly.limits.classify import PermitKind
 from jeepdolly.measure import Inches, Pounds
-from jeepdolly.permits.issue import assess, governing_class, issue
+from jeepdolly.permits.assessment import assess, governing_class
+from jeepdolly.permits.issue import issue
 from jeepdolly.seasons import SeasonBook, SeasonKind, SeasonOrder
 from support import a_combination, an_application, an_office, legal_semi, make_stream
 

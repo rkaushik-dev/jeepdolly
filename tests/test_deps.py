@@ -13,7 +13,7 @@ from jeepdolly.api.deps import (
 )
 from jeepdolly.domain.restriction import RestrictionKind
 from jeepdolly.measure import Inches, Pounds
-from jeepdolly.permits.issue import assess
+from jeepdolly.permits.assessment import assess
 from jeepdolly.persistence.models import RestrictionRow
 from jeepdolly.persistence.unitofwork import UnitOfWork
 from support import a_seeded_database, an_application

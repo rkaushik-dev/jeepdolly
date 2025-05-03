@@ -34,8 +34,8 @@ from jeepdolly.limits.statutory import standard_book as standard_statutes
 from jeepdolly.measure import Inches, Miles, Pounds
 from jeepdolly.money import Dollars
 from jeepdolly.permits.application import Applicant, Application
-from jeepdolly.permits.issue import Office
 from jeepdolly.permits.numbering import Numbering, PermitNumber, Series
+from jeepdolly.permits.office import Office
 from jeepdolly.permits.permit import Permit
 from jeepdolly.persistence.base import create_all, memory_engine, session_factory
 from jeepdolly.persistence.models import (

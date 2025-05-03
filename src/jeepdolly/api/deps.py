@@ -34,8 +34,8 @@ from ..limits.size import SizeBook
 from ..limits.size import standard_book as coded_sizes
 from ..limits.statutory import StatutoryBook
 from ..limits.statutory import standard_book as coded_statutes
-from ..permits.issue import Office
 from ..permits.numbering import Numbering
+from ..permits.office import Office
 from ..persistence.models.carriers import CarrierRow
 from ..persistence.models.network import NodeRow, RestrictionRow, SegmentRow
 from ..persistence.models.structures import StructureRow

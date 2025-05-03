@@ -23,8 +23,10 @@ from datetime import date
 
 from ..errors import NotAllowed
 from ..permits.application import Application
-from ..permits.issue import Assessment, Office, assess, issue
+from ..permits.assessment import Assessment, assess
+from ..permits.issue import issue
 from ..permits.numbering import Series
+from ..permits.office import Office
 from ..permits.permit import Permit
 from ..persistence.unitofwork import UnitOfWork
 from . import audit

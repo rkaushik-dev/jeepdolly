@@ -17,7 +17,7 @@ from fastapi import APIRouter, Depends, Query
 
 from ...errors import Unreadable
 from ...permits.application import Application, ApplicationState
-from ...permits.issue import Assessment
+from ...permits.assessment import Assessment
 from ...persistence.unitofwork import UnitOfWork
 from ...services import counter
 from ..deps import office_from, unit_of_work
