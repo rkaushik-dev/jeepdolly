@@ -42,6 +42,7 @@ from ..persistence.models.structures import StructureRow
 from ..persistence.seasonstore import book_from
 from ..persistence.tariffstore import schedule_book, size_book, statutory_book
 from ..persistence.unitofwork import UnitOfWork
+from ..routing.turns import coded_corners
 from ..structures.inventory import StructureBook
 
 
@@ -155,6 +156,9 @@ def office_from(work: UnitOfWork, on: date | None = None) -> Office:
         commodities=work.commodities.book(day),
         carriers=carriers_from(session, day),
         structures=structures_from(session),
+        # The card index has never been anywhere but the code. It moves
+        # perhaps twice a year and nobody has asked to edit it on a screen.
+        turns=coded_corners(),
         schedules=schedules_for(session),
         library=standard_library(),
         # The counter is the one in the database, inside this transaction, so

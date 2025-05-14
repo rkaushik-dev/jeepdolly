@@ -144,3 +144,31 @@ def too_tight(itinerary: Itinerary, envelope: Envelope, book: TurnBook) -> tuple
     return tuple(
         TooTight(one, wanted) for one in corners_on(itinerary, book) if one.radius_feet < wanted
     )
+
+
+#: The corners the office has on the card index, as they stand in the code.
+#:
+#: These are here for the same reason the statutory tables have a coded copy:
+#: a database that has not been seeded still has to answer the telephone, and
+#: an office with no corners on file would wave a hundred and forty feet of
+#: bridge beam through Norridgewock village.
+CORNERS = [
+    ("norridgewock", "US2-1", "SR8-1", 38, "ninety degrees at the square, granite kerb"),
+    ("norridgewock", "US2-1", "SA148-1", 70, "wide but the bank is soft on the outside"),
+    ("skowhegan", "US201-2", "US2-1", 65, "island in the middle, keep it on the left"),
+    ("skowhegan", "US201-2", "SA148-2", 62, "off the bridge and hard right, watch the kerb"),
+    ("skowhegan", "US201-2", "US201-3", 80, ""),
+    ("canaan", "SA148-1", "SR43-1", 70, ""),
+    ("canaan", "SA148-2", "SR43-1", 75, ""),
+    ("madison", "SR8-1", "TR104-1", 35, "mill gate, and the gate posts are the limit"),
+    ("pittsfield", "SR43-1", "US2-2", 68, ""),
+    ("fairfield", "I95-1", "I95-2", 120, "interstate ramp, nothing gets stuck here"),
+]
+
+
+def coded_corners() -> TurnBook:
+    """The card index as it stands in the code, for an office with no rows."""
+    book = TurnBook()
+    for node, into, out_of, radius, note in CORNERS:
+        book.add(Corner(node, into, out_of, radius, note))
+    return book

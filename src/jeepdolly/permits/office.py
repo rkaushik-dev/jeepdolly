@@ -18,6 +18,7 @@ from ..domain.restriction import RestrictionBook
 from ..fees.schedule import ScheduleBook
 from ..limits.size import SizeBook
 from ..limits.statutory import StatutoryBook
+from ..routing.turns import TurnBook
 from ..seasons import SeasonBook
 from ..structures.inventory import StructureBook
 from ..travelcalendar import PermitCalendar
@@ -36,6 +37,7 @@ class Office:
     commodities: CommodityBook
     carriers: CarrierRegister
     structures: StructureBook
+    turns: TurnBook
     schedules: ScheduleBook
     library: ConditionLibrary
     numbering: Numbering

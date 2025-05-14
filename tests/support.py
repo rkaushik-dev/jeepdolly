@@ -50,6 +50,7 @@ from jeepdolly.persistence.models import (
 )
 from jeepdolly.persistence.tariffstore import seed as seed_tariff
 from jeepdolly.persistence.unitofwork import UnitOfWork
+from jeepdolly.routing.turns import coded_corners
 from jeepdolly.seasons import SeasonBook
 from jeepdolly.structures.inventory import Structure, StructureBook, StructureKind
 
@@ -204,7 +205,7 @@ def a_carrier_register():
     return register
 
 
-def an_office(restrictions=None, seasons=None):
+def an_office(restrictions=None, seasons=None, turns=None):
     """The whole office wired up against the test network."""
     return Office(
         network=road_log(),
@@ -215,6 +216,7 @@ def an_office(restrictions=None, seasons=None):
         commodities=standard_commodities(),
         carriers=a_carrier_register(),
         structures=structure_book(),
+        turns=turns if turns is not None else coded_corners(),
         schedules=standard_schedules(),
         library=standard_library(),
         numbering=Numbering(),

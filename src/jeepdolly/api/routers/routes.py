@@ -79,6 +79,7 @@ def _shape(itinerary: Itinerary, desk: Office, load: LoadQuery, day: date) -> Ro
         desk.restrictions,
         desk.seasons,
         desk.statutes,
+        turns=desk.turns,
     )
     return RouteOut(
         segments=list(itinerary.idents),

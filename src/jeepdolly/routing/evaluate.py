@@ -17,6 +17,11 @@ at this weight until the order lifts, which reads like a fatal finding and is
 reported as a condition, because the answer is a date rather than a refusal and
 the hauler wants the date.
 
+A corner is read the same way and it is always fatal. There is no condition
+that gets a hundred and forty feet round a thirty eight foot radius, and the
+office would rather say so on the telephone than have a driver find out with
+the trailer across both lanes of US 2.
+
 The seasonal case is the one worth reading twice. A segment carries a seasonal
 restriction naming a region. The restriction does not carry a weight. The
 weight comes from whichever thaw order the season book has in force for that
@@ -37,6 +42,7 @@ from ..limits.statutory import StatutoryBook
 from ..measure import Pounds
 from ..seasons import SeasonBook
 from .itinerary import Itinerary
+from .turns import TurnBook, too_tight
 
 
 @dataclass(frozen=True)
@@ -98,6 +104,7 @@ def evaluate(
     seasons: SeasonBook,
     statutes: StatutoryBook,
     departure: time | None = None,
+    turns: TurnBook | None = None,
 ) -> RouteReading:
     """Read every leg of the trip against every restriction on it."""
     found: list[Obstruction] = []
@@ -107,7 +114,32 @@ def evaluate(
                 leg.segment, envelope, gross, day, restrictions, seasons, statutes, departure
             )
         )
+    if turns is not None:
+        found.extend(corner_obstructions(itinerary, envelope, turns))
     return RouteReading(day, itinerary, tuple(found))
+
+
+def corner_obstructions(
+    itinerary: Itinerary,
+    envelope: Envelope,
+    turns: TurnBook,
+) -> tuple[Obstruction, ...]:
+    """The corners on this route the load will not get round.
+
+    The obstruction is filed against the segment being turned out of, because
+    that is the leg the driver is on when he finds out, and it is the leg a
+    detour would have to replace.
+    """
+    return tuple(
+        Obstruction(
+            segment=one.corner.out_of,
+            kind="corner",
+            note=one.corner.note or f"the turn at {one.corner.node}",
+            needed=f"{one.wanted} ft radius",
+            allowed=f"{one.corner.radius_feet} ft radius",
+        )
+        for one in too_tight(itinerary, envelope, turns)
+    )
 
 
 def segment_obstructions(

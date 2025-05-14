@@ -131,6 +131,7 @@ def assess(office: Office, application: Application, day: date | None = None) ->
         office.restrictions,
         office.seasons,
         office.statutes,
+        turns=office.turns,
     )
     refusals.extend(str(one) for one in route.fatal)
 
