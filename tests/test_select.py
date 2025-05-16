@@ -11,22 +11,23 @@ from jeepdolly.errors import NotOnFile
 from jeepdolly.limits.statutory import standard_book as statutes
 from jeepdolly.measure import Inches, Miles, Pounds
 from jeepdolly.routing.select import PENALTY, Search, find, reachable
+from jeepdolly.routing.turns import coded_corners
 from jeepdolly.seasons import SeasonBook
 from support import road_log
 
 MARCH = date(2025, 3, 3)
 
 
-def search(height="13'6", gross=94000, penalties=None):
+def search(height="13'6", gross=94000, penalties=None, length="82'"):
     return Search(
-        envelope=Envelope.read("12'", height, "82'"),
+        envelope=Envelope.read("12'", height, length),
         gross=Pounds(gross),
         day=MARCH,
         penalties=penalties if penalties is not None else dict(PENALTY),
     )
 
 
-def route(origin="waterville", destination="pittsfield", restrictions=None, load=None):
+def route(origin="waterville", destination="pittsfield", restrictions=None, load=None, turns=None):
     return find(
         road_log(),
         origin,
@@ -35,6 +36,7 @@ def route(origin="waterville", destination="pittsfield", restrictions=None, load
         restrictions or RestrictionBook(),
         SeasonBook(),
         statutes(),
+        turns=turns,
     )
 
 
@@ -126,3 +128,88 @@ def test_a_closure_cuts_off_everything_behind_it():
     blocked.add(Restriction("R-3", "US2-2", RestrictionKind.CLOSURE, "bridge out"))
     places = reachable(road_log(), "newport", search(), blocked, SeasonBook(), statutes())
     assert places == ("newport",)
+
+
+def test_the_card_index_leaves_a_route_alone_when_nothing_has_trouble_on_it():
+    found = route(turns=coded_corners())
+    assert found is not None
+    assert found.idents == ("I95-1", "I95-2")
+
+
+def test_a_tight_corner_sends_a_long_load_round_the_back_rather_than_refusing_it():
+    without = route(destination="madison")
+    assert without is not None
+    assert without.idents == ("I95-1", "US201-2", "US2-1", "SR8-1")
+    found = route(destination="madison", turns=coded_corners())
+    assert found is not None
+    assert found.idents == ("I95-1", "I95-2", "SR43-1", "SA148-1", "SR8-1")
+
+
+def test_a_load_inside_the_plain_length_still_gets_round_that_corner():
+    short = search(length="70'")
+    found = route(destination="madison", load=short, turns=coded_corners())
+    assert found is not None
+    assert found.idents == ("I95-1", "US201-2", "US2-1", "SR8-1")
+
+
+def test_the_way_round_costs_more_and_the_router_pays_it():
+    short = route(destination="madison", load=search(length="70'"), turns=coded_corners())
+    long_way = route(destination="madison", turns=coded_corners())
+    assert short is not None and long_way is not None
+    assert long_way.distance > short.distance
+
+
+def test_the_corner_is_read_off_the_road_the_load_arrived_on():
+    # Into Norridgewock on US 2 is the square and it is too tight. Into
+    # Norridgewock on SA 148 is the other end of the village and it is not.
+    book = coded_corners()
+    through = find(
+        road_log(),
+        "canaan",
+        "madison",
+        search(),
+        RestrictionBook(),
+        SeasonBook(),
+        statutes(),
+        turns=book,
+    )
+    assert through is not None
+    assert through.idents == ("SA148-1", "SR8-1")
+
+
+def test_a_closure_and_a_corner_together_can_cut_a_place_off_entirely():
+    blocked = RestrictionBook()
+    blocked.add(Restriction("R-4", "SA148-1", RestrictionKind.CLOSURE, "culvert out"))
+    assert route(destination="madison", restrictions=blocked, turns=coded_corners()) is None
+    assert route(destination="madison", restrictions=blocked) is not None
+
+
+def test_the_reach_question_reads_the_corners_the_same_way():
+    blocked = RestrictionBook()
+    blocked.add(Restriction("R-5", "SA148-1", RestrictionKind.CLOSURE, "culvert out"))
+    places = reachable(
+        road_log(),
+        "waterville",
+        search(),
+        blocked,
+        SeasonBook(),
+        statutes(),
+        turns=coded_corners(),
+    )
+    assert "madison" not in places
+    assert "norridgewock" in places
+    assert "anson" in places
+
+
+def test_without_the_card_index_the_reach_question_answers_as_it_always_did():
+    blocked = RestrictionBook()
+    blocked.add(Restriction("R-6", "SA148-1", RestrictionKind.CLOSURE, "culvert out"))
+    places = reachable(road_log(), "waterville", search(), blocked, SeasonBook(), statutes())
+    assert "madison" in places
+
+
+def test_the_same_question_gives_the_same_answer_twice_with_corners_too():
+    first = route(restrictions=low_bridge(), turns=coded_corners())
+    second = route(restrictions=low_bridge(), turns=coded_corners())
+    assert first is not None and second is not None
+    assert first.idents == second.idents

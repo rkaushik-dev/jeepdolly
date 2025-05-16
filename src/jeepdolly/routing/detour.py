@@ -30,6 +30,7 @@ from ..seasons import SeasonBook
 from .evaluate import segment_obstructions
 from .itinerary import Itinerary
 from .select import Search, find
+from .turns import TurnBook
 
 
 @dataclass(frozen=True)
@@ -85,6 +86,7 @@ def repair(
     restrictions: RestrictionBook,
     seasons: SeasonBook,
     statutes: StatutoryBook,
+    turns: TurnBook | None = None,
 ) -> Repair | None:
     """Keep the good part of a route and search from where it stops."""
     index = first_trouble(itinerary, search, restrictions, seasons, statutes)
@@ -100,6 +102,7 @@ def repair(
             restrictions,
             seasons,
             statutes,
+            turns=turns,
         )
         if onward is None:
             continue

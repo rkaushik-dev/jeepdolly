@@ -136,6 +136,7 @@ def find_route(
         desk.restrictions,
         desk.seasons,
         desk.statutes,
+        turns=desk.turns,
     )
     if found is None:
         raise NotOnFile(
@@ -158,5 +159,13 @@ def reachable_places(
     when = day or date.today()
     search = Search(envelope=load.envelope(), gross=load.weight(), day=when)
     return list(
-        reachable(desk.network, origin, search, desk.restrictions, desk.seasons, desk.statutes)
+        reachable(
+            desk.network,
+            origin,
+            search,
+            desk.restrictions,
+            desk.seasons,
+            desk.statutes,
+            turns=desk.turns,
+        )
     )

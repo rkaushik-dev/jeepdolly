@@ -21,6 +21,17 @@ penalties of zero.
 Ties are broken by segment ident so the same request gives the same route
 twice. A router that returns two different answers to the same question is a
 router nobody trusts and everybody works around.
+
+The state of the search is a place and the road it was reached on, not a place
+on its own. That is because of the corners. Whether a load can leave Skowhegan
+on US 2 depends on which road it came into Skowhegan by, so the cost of being
+at a place is not one number, and a search that keeps one number per place will
+quietly hand out a route with a turn in it that nothing can get round.
+
+It costs what it sounds like it costs. There are as many states as there are
+ends of segments, which on a road network is a small multiple of the places,
+and the frontier grows the same way. On a state of eleven thousand segments
+this is still under a second, and the office does not route in a loop.
 """
 
 from __future__ import annotations
@@ -38,6 +49,7 @@ from ..measure import Pounds
 from ..seasons import SeasonBook
 from .evaluate import segment_obstructions
 from .itinerary import Itinerary
+from .turns import TurnBook, radius_wanted
 
 #: Extra hundredths of a mile charged per hundredth on the lesser roads.
 PENALTY = {
@@ -46,6 +58,10 @@ PENALTY = {
     HighwayClass.STATE_AID: 1,
     HighwayClass.TOWN_WAY: 4,
 }
+
+
+#: A place and the segment the load arrived on, which is empty at the origin.
+State = tuple[str, str]
 
 
 @dataclass(frozen=True)
@@ -67,26 +83,32 @@ def find(
     restrictions: RestrictionBook,
     seasons: SeasonBook,
     statutes: StatutoryBook,
+    turns: TurnBook | None = None,
 ) -> Itinerary | None:
     """The cheapest route this load can take today, or None if there is none."""
     network.node(origin)
     network.node(destination)
     if origin == destination:
         return None
-    seen: set[str] = set()
-    best: dict[str, int] = {origin: 0}
-    came: dict[str, tuple[str, str]] = {}
+    start: State = (origin, "")
+    seen: set[State] = set()
+    best: dict[State, int] = {start: 0}
+    came: dict[State, tuple[State, str]] = {}
     frontier: list[tuple[int, str, str]] = [(0, origin, "")]
     while frontier:
-        cost, here, _ = heapq.heappop(frontier)
-        if here in seen:
+        cost, here, arrived = heapq.heappop(frontier)
+        standing: State = (here, arrived)
+        if standing in seen:
             continue
-        seen.add(here)
+        seen.add(standing)
         if here == destination:
-            return _rebuild(network, origin, destination, came)
+            return _rebuild(network, origin, standing, came)
         for segment in network.leaving(here):
             beyond = segment.other_end(here)
-            if beyond in seen:
+            onward: State = (beyond, segment.ident)
+            if onward in seen:
+                continue
+            if _wont_turn(here, arrived, segment.ident, search, turns):
                 continue
             if segment_obstructions(
                 segment,
@@ -101,11 +123,32 @@ def find(
                 continue
             step = _cost(segment.length.hundredths, segment.highway_class, search.penalties)
             through = cost + step
-            if through < best.get(beyond, through + 1):
-                best[beyond] = through
-                came[beyond] = (here, segment.ident)
+            if through < best.get(onward, through + 1):
+                best[onward] = through
+                came[onward] = (standing, segment.ident)
                 heapq.heappush(frontier, (through, beyond, segment.ident))
     return None
+
+
+def _wont_turn(
+    node: str,
+    arrived: str,
+    onto: str,
+    search: Search,
+    turns: TurnBook | None,
+) -> bool:
+    """Whether this load can get from one road onto the other at this place.
+
+    A corner nobody measured is not in the way. That is deliberate: the card
+    index covers the corners somebody has had trouble at, and the office does
+    not refuse a route because a junction is missing from it.
+    """
+    if turns is None or not arrived:
+        return False
+    corner = turns.between(node, arrived, onto)
+    if corner is None:
+        return False
+    return corner.radius_feet < radius_wanted(search.envelope)
 
 
 def _cost(hundredths: int, highway_class: HighwayClass, penalties: dict[HighwayClass, int]) -> int:
@@ -115,12 +158,12 @@ def _cost(hundredths: int, highway_class: HighwayClass, penalties: dict[HighwayC
 def _rebuild(
     network: Network,
     origin: str,
-    destination: str,
-    came: dict[str, tuple[str, str]],
+    arrived: State,
+    came: dict[State, tuple[State, str]],
 ) -> Itinerary:
     idents: list[str] = []
-    standing = destination
-    while standing != origin:
+    standing = arrived
+    while standing[1]:
         before, ident = came[standing]
         idents.append(ident)
         standing = before
@@ -135,19 +178,29 @@ def reachable(
     restrictions: RestrictionBook,
     seasons: SeasonBook,
     statutes: StatutoryBook,
+    turns: TurnBook | None = None,
 ) -> tuple[str, ...]:
     """Every place this load can get to from here today.
 
     The counter uses this the other way round from the router: a hauler asks
     whether a mill is reachable at all before anybody argues about the route.
+
+    This walks the same states the router does, for the same reason. A place
+    reachable only through a corner the load will not get round is not a place
+    the load can get to, however many roads run into it.
     """
+    start: State = (origin, "")
     found = {origin}
-    frontier = [origin]
+    seen: set[State] = {start}
+    frontier: list[State] = [start]
     while frontier:
-        here = frontier.pop()
+        here, arrived = frontier.pop()
         for segment in network.leaving(here):
             beyond = segment.other_end(here)
-            if beyond in found:
+            onward: State = (beyond, segment.ident)
+            if onward in seen:
+                continue
+            if _wont_turn(here, arrived, segment.ident, search, turns):
                 continue
             if segment_obstructions(
                 segment,
@@ -160,6 +213,7 @@ def reachable(
                 search.departure,
             ):
                 continue
+            seen.add(onward)
             found.add(beyond)
-            frontier.append(beyond)
+            frontier.append(onward)
     return tuple(sorted(found))

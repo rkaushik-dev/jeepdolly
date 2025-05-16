@@ -33,8 +33,16 @@ from ..errors import Conflict, Impossible
 from ..measure import Inches
 from .itinerary import Itinerary
 
-#: Below this radius nothing longer than the short table gets round.
-TIGHT_FEET = 40
+#: The radius a combination inside the plain length wants, in feet.
+PLAIN_RADIUS = 40
+
+#: The radius under which a corner goes on the list on the office wall.
+#:
+#: This is not the same number as the plain radius and it is deliberately
+#: above it. A forty two foot corner gets an ordinary lowboy round and stops
+#: everything longer, which is exactly the kind of corner the counter wants to
+#: know about before it quotes a route rather than after.
+TIGHT_FEET = 50
 
 #: Length at which a combination starts to need more than the plain corner.
 LONG_ENOUGH = Inches.of(75)
@@ -106,7 +114,7 @@ def radius_wanted(envelope: Envelope) -> int:
     over = envelope.length.over(LONG_ENOUGH)
     from_length = (over.value // 12) * RADIUS_PER_FOOT
     from_overhang = (envelope.rear_overhang.value // 12) * RADIUS_PER_OVERHANG_FOOT
-    return TIGHT_FEET + from_length + from_overhang
+    return PLAIN_RADIUS + from_length + from_overhang
 
 
 @dataclass(frozen=True)
@@ -153,7 +161,7 @@ def too_tight(itinerary: Itinerary, envelope: Envelope, book: TurnBook) -> tuple
 #: an office with no corners on file would wave a hundred and forty feet of
 #: bridge beam through Norridgewock village.
 CORNERS = [
-    ("norridgewock", "US2-1", "SR8-1", 38, "ninety degrees at the square, granite kerb"),
+    ("norridgewock", "US2-1", "SR8-1", 42, "ninety degrees at the square, granite kerb"),
     ("norridgewock", "US2-1", "SA148-1", 70, "wide but the bank is soft on the outside"),
     ("skowhegan", "US201-2", "US2-1", 65, "island in the middle, keep it on the left"),
     ("skowhegan", "US201-2", "SA148-2", 62, "off the bridge and hard right, watch the kerb"),
