@@ -10,6 +10,11 @@ about whether two is right for a load that narrow, because the escort table has
 already thought about it and having the thinking in two places is how the two
 places come to disagree.
 
+A permit can only carry one of each code, so a route with two tight corners
+on it prints one stop traffic condition naming the first. That is a known
+shortcoming of collecting by code and it has not bitten yet, because a route
+with two of them is a route the counter has already telephoned about.
+
 There is one piece of judgement and it is about duplication. Several rules can
 produce the same condition: a superload is daylight only, and so is anything
 over twelve feet wide, and a permit that says daylight hours only twice reads
@@ -105,6 +110,12 @@ def _route(sheet: Sheet, route: RouteReading) -> None:
             )
         elif trouble.kind == "curfew":
             sheet.add("T-05", segment=trouble.segment, curfew=trouble.allowed)
+        elif trouble.kind == "tight corner":
+            # Both of these, and in this order. The first is what the driver
+            # has to do and the second is why, and an officer at the roadside
+            # reads the first one on its own.
+            sheet.add("R-05", segment=trouble.segment, place=trouble.place)
+            sheet.add("R-06", place=trouble.place, allowed=trouble.allowed)
 
 
 def _structures(sheet: Sheet, structures: StructureReading) -> None:

@@ -250,3 +250,28 @@ def test_the_coded_card_index_is_the_office_list_and_not_empty():
     book = coded_corners()
     assert len(book) == 10
     assert [one.node for one in book.tight()] == ["madison", "norridgewock"]
+
+
+def test_a_corner_the_load_only_just_gets_round_is_a_condition_not_a_refusal():
+    near = Envelope.read("12'", "13'9", "95'")
+    reading = run(envelope=near, turns=coded_corners())
+    corners = [one for one in reading.obstructions if one.kind == "tight corner"]
+    assert [one.place for one in corners] == ["skowhegan"]
+    assert not any(one.fatal for one in corners)
+    assert reading.clear
+    assert str(reading) == "route is clear with 1 conditions"
+
+
+def test_the_same_corner_is_never_both_a_refusal_and_a_condition():
+    long_one = Envelope.read("12'", "13'9", "150'")
+    reading = run(envelope=long_one, turns=coded_corners())
+    refused = {one.place for one in reading.obstructions if one.kind == "corner"}
+    noted = {one.place for one in reading.obstructions if one.kind == "tight corner"}
+    assert refused
+    assert refused & noted == set()
+
+
+def test_an_obstruction_that_is_not_a_corner_names_no_place():
+    book = RestrictionBook()
+    book.add(Restriction("R-9", "SA148-1", RestrictionKind.CLOSURE, "culvert work"))
+    assert all(one.place == "" for one in run(book).obstructions)

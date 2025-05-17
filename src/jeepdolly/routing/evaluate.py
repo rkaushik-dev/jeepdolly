@@ -42,7 +42,7 @@ from ..limits.statutory import StatutoryBook
 from ..measure import Pounds
 from ..seasons import SeasonBook
 from .itinerary import Itinerary
-from .turns import TurnBook, too_tight
+from .turns import TurnBook, close_run, too_tight
 
 
 @dataclass(frozen=True)
@@ -55,6 +55,8 @@ class Obstruction:
     needed: str
     allowed: str
     fatal: bool = True
+    #: Where it is, when that is a place rather than a piece of road.
+    place: str = ""
 
     def __str__(self) -> str:
         weight = "no permit" if self.fatal else "condition"
@@ -129,17 +131,35 @@ def corner_obstructions(
     The obstruction is filed against the segment being turned out of, because
     that is the leg the driver is on when he finds out, and it is the leg a
     detour would have to replace.
+
+    A corner the load gets round with little to spare comes back too, as a
+    condition rather than a refusal. The trip happens, with a man in the road
+    holding the traffic while it happens.
     """
-    return tuple(
+    found = [
         Obstruction(
             segment=one.corner.out_of,
             kind="corner",
             note=one.corner.note or f"the turn at {one.corner.node}",
             needed=f"{one.wanted} ft radius",
             allowed=f"{one.corner.radius_feet} ft radius",
+            place=one.corner.node,
         )
         for one in too_tight(itinerary, envelope, turns)
+    ]
+    found.extend(
+        Obstruction(
+            segment=one.corner.out_of,
+            kind="tight corner",
+            note=one.corner.note or f"the turn at {one.corner.node}",
+            needed=f"{one.wanted} ft radius",
+            allowed=f"{one.corner.radius_feet} ft radius",
+            fatal=False,
+            place=one.corner.node,
+        )
+        for one in close_run(itinerary, envelope, turns)
     )
+    return tuple(found)
 
 
 def segment_obstructions(

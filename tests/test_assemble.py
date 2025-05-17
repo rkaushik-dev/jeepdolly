@@ -12,6 +12,7 @@ from jeepdolly.limits.statutory import standard_book as statutes
 from jeepdolly.measure import Pounds
 from jeepdolly.routing.evaluate import evaluate
 from jeepdolly.routing.itinerary import Itinerary
+from jeepdolly.routing.turns import coded_corners
 from jeepdolly.seasons import SeasonBook, SeasonKind, SeasonOrder
 from jeepdolly.structures.analysis import analyse_route
 from jeepdolly.travel.windows import limits_for
@@ -141,3 +142,39 @@ def test_the_conditions_print_grouped_by_category_in_face_order():
     assert printed.index("R-01") < printed.index("E-01")
     assert printed.index("E-01") < printed.index("M-01")
     assert printed.index("M-01") < printed.index("G-01")
+
+
+def corner_reading(length="95'"):
+    return evaluate(
+        Itinerary(road_log(), "waterville", ACROSS),
+        load(length=length),
+        Pounds(94000),
+        APRIL,
+        RestrictionBook(),
+        SeasonBook(),
+        statutes(),
+        turns=coded_corners(),
+    )
+
+
+def test_a_corner_the_load_only_just_gets_round_prints_two_route_conditions():
+    printed = sheet(route=corner_reading())
+    stop = next(one for one in printed if one.code == "R-05")
+    assert stop.text == "Stop traffic both ways to turn onto US2-1 at skowhegan."
+    walk = next(one for one in printed if one.code == "R-06")
+    assert walk.text == "The turn at skowhegan allows 65 ft radius. Walk it first."
+
+
+def test_the_two_corner_conditions_print_in_the_order_the_driver_needs_them():
+    printed = codes(sheet(route=corner_reading()))
+    assert printed.index("R-05") < printed.index("R-06")
+    assert printed.index("R-01") < printed.index("R-05")
+
+
+def test_a_corner_with_room_to_spare_says_nothing_on_the_permit():
+    assert "R-05" not in codes(sheet(route=corner_reading(length="80'")))
+
+
+def test_a_corner_the_load_cannot_get_round_is_not_a_condition_at_all():
+    # It is a refusal, and a refused application never reaches this file.
+    assert "R-05" not in codes(sheet(route=corner_reading(length="150'")))

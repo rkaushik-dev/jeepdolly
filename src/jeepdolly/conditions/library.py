@@ -142,6 +142,8 @@ STANDARD_TEXTS = [
     ("R-02", Category.ROUTE, "{segment} is posted at {limit} while order {order} runs.", 20),
     ("R-03", Category.ROUTE, "Do not enter {segment}. Use {detour}.", 30),
     ("R-04", Category.ROUTE, "Obey the posted clearance of {clearance} at {structure}.", 40),
+    ("R-05", Category.ROUTE, "Stop traffic both ways to turn onto {segment} at {place}.", 50),
+    ("R-06", Category.ROUTE, "The turn at {place} allows {allowed}. Walk it first.", 60),
     ("S-01", Category.STRUCTURE, "Cross {structure} alone with no other vehicle on it.", 10),
     ("S-02", Category.STRUCTURE, "Cross {structure} at walking pace.", 20),
     ("S-03", Category.STRUCTURE, "Cross {structure} centred on the roadway.", 30),

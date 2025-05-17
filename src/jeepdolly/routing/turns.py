@@ -135,6 +135,32 @@ class TooTight:
         )
 
 
+#: A corner that clears by less than this gets a condition rather than silence.
+#:
+#: Ten feet is not a comfort margin. It is the width of the mistake a driver
+#: can make on a corner he has not seen before, and the office would rather
+#: put a man in the road with a flag than have the trailer find the kerb.
+MARGIN_FEET = 10
+
+
+@dataclass(frozen=True)
+class CloseRun:
+    """One corner a load gets round, but not by much."""
+
+    corner: Corner
+    wanted: int
+
+    @property
+    def spare(self) -> int:
+        return self.corner.radius_feet - self.wanted
+
+    def __str__(self) -> str:
+        return (
+            f"{self.corner.node}: the corner is {self.corner.radius_feet} ft and this "
+            f"load wants {self.wanted} ft, so it clears by {self.spare} ft"
+        )
+
+
 def corners_on(itinerary: Itinerary, book: TurnBook) -> tuple[Corner, ...]:
     """Every recorded corner the trip actually turns at, in driven order."""
     found = []
@@ -180,3 +206,18 @@ def coded_corners() -> TurnBook:
     for node, into, out_of, radius, note in CORNERS:
         book.add(Corner(node, into, out_of, radius, note))
     return book
+
+
+def close_run(
+    itinerary: Itinerary,
+    envelope: Envelope,
+    book: TurnBook,
+    margin: int = MARGIN_FEET,
+) -> tuple[CloseRun, ...]:
+    """The corners on this route the load gets round with little to spare."""
+    wanted = radius_wanted(envelope)
+    return tuple(
+        CloseRun(one, wanted)
+        for one in corners_on(itinerary, book)
+        if wanted <= one.radius_feet < wanted + margin
+    )

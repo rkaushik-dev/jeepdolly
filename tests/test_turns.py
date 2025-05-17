@@ -8,6 +8,7 @@ from jeepdolly.routing.itinerary import Itinerary
 from jeepdolly.routing.turns import (
     Corner,
     TurnBook,
+    close_run,
     corners_on,
     radius_wanted,
     too_tight,
@@ -112,3 +113,34 @@ def test_a_load_long_enough_is_stopped_at_every_corner():
 def test_a_corner_nobody_measured_is_not_in_the_way_of_anything():
     empty = TurnBook()
     assert too_tight(trip(), load(length="200'"), empty) == ()
+
+
+def test_a_corner_that_clears_by_plenty_is_not_worth_a_condition():
+    assert close_run(trip(), load(), book(radius=80)) == ()
+
+
+def test_a_corner_that_clears_by_a_little_comes_back_as_a_close_run():
+    found = close_run(trip(), load(), book(radius=46))
+    assert [one.corner.node for one in found] == ["skowhegan"]
+    assert found[0].wanted == 40
+    assert found[0].spare == 6
+    assert "clears by 6 ft" in str(found[0])
+
+
+def test_a_corner_the_load_will_not_get_round_is_not_a_close_run():
+    found = close_run(trip(), load(length="95'"), book())
+    assert [one.corner.node for one in found] == ["canaan"]
+
+
+def test_the_margin_is_an_argument_and_a_wider_one_catches_more():
+    plain = close_run(trip(), load(length="95'"), book(radius=80))
+    assert [one.corner.node for one in plain] == ["canaan"]
+    wide = close_run(trip(), load(length="95'"), book(radius=80), margin=25)
+    assert [one.corner.node for one in wide] == ["skowhegan", "canaan"]
+
+
+def test_the_close_run_and_the_refusal_never_name_the_same_corner():
+    envelope = load(length="95'")
+    tight = {one.corner.node for one in too_tight(trip(), envelope, book())}
+    near = {one.corner.node for one in close_run(trip(), envelope, book())}
+    assert tight & near == set()
