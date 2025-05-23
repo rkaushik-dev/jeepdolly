@@ -13,6 +13,12 @@ a later change and it wants a measurement in front of it, not a guess.
 What is deliberately not cached is the restriction book, the carrier record
 and the seasonal orders. Those change during the day, and a permit written
 against yesterday's closure is exactly the failure this office cannot have.
+
+The reading itself is not here. Turning rows into a Network or a carrier
+register wants a session and nothing else, so it lives in the persistence
+layer where a command line report can reach it without importing a web
+framework. What is here is the choosing: which day, and what to do when a
+published table has not been seeded yet.
 """
 
 from __future__ import annotations
@@ -25,9 +31,6 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from .. import logs
 from ..conditions.library import standard_library
-from ..domain.carrier import CarrierRegister
-from ..domain.network import Network, Node
-from ..domain.restriction import Curfew, Restriction, RestrictionBook
 from ..fees.schedule import ScheduleBook
 from ..fees.schedule import standard_book as coded_schedules
 from ..limits.size import SizeBook
@@ -36,14 +39,16 @@ from ..limits.statutory import StatutoryBook
 from ..limits.statutory import standard_book as coded_statutes
 from ..permits.numbering import Numbering
 from ..permits.office import Office
-from ..persistence.models.carriers import CarrierRow
-from ..persistence.models.network import NodeRow, RestrictionRow, SegmentRow
-from ..persistence.models.structures import StructureRow
+from ..persistence.books import (
+    carriers_from,
+    network_from,
+    restrictions_from,
+    structures_from,
+)
 from ..persistence.seasonstore import book_from
 from ..persistence.tariffstore import schedule_book, size_book, statutory_book
 from ..persistence.unitofwork import UnitOfWork
 from ..routing.turns import coded_corners
-from ..structures.inventory import StructureBook
 
 
 def sessions(request: Request) -> sessionmaker[Session]:
@@ -56,56 +61,6 @@ def unit_of_work(factory: sessionmaker[Session] = Depends(sessions)) -> Iterator
     """One unit of work per request, closed on the way out."""
     with UnitOfWork(factory) as work:
         yield work
-
-
-def network_from(session: Session) -> Network:
-    network = Network()
-    for node in session.query(NodeRow).all():
-        network.add_node(Node(node.name, node.town))
-    for segment in session.query(SegmentRow).all():
-        network.add_segment(segment.to_domain())
-    return network
-
-
-def restrictions_from(session: Session) -> RestrictionBook:
-    book = RestrictionBook()
-    for row in session.query(RestrictionRow).all():
-        book.add(_restriction(row))
-    return book
-
-
-def _restriction(row: RestrictionRow) -> Restriction:
-    curfew = None
-    if row.curfew_days and row.curfew_from and row.curfew_to:
-        days = frozenset(int(one) for one in row.curfew_days)
-        curfew = Curfew(days, row.curfew_from, row.curfew_to)
-    return Restriction(
-        ident=row.ident,
-        segment=row.segment_ident,
-        kind=row.kind,
-        note=row.note,
-        height=row.height,
-        width=row.width,
-        weight=row.weight,
-        region=row.region,
-        curfew=curfew,
-        effective=row.effective,
-        expires=row.expires,
-    )
-
-
-def structures_from(session: Session) -> StructureBook:
-    book = StructureBook()
-    for row in session.query(StructureRow).all():
-        book.add(row.to_domain())
-    return book
-
-
-def carriers_from(session: Session, on: date) -> CarrierRegister:
-    register = CarrierRegister()
-    for row in session.query(CarrierRow).all():
-        register.add(row.to_domain(on))
-    return register
 
 
 def statutes_for(session: Session) -> StatutoryBook:
