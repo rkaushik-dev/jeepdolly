@@ -5,10 +5,16 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
+from jeepdolly.cli import network as commands
 from jeepdolly.cli.main import Console, main
 from jeepdolly.config import Settings
 from jeepdolly.persistence.unitofwork import UnitOfWork
 from support import a_seeded_database
+
+# The import above is what registers the group on the main command. Without
+# it this file passes in a whole run and fails on its own, which is a bad
+# half hour for whoever finds it.
+assert commands.roads.name == "roads"
 
 NEW_LINE = "US201-4|US 201|anson|solon|910|Somerset|Anson|4|0"
 
@@ -102,3 +108,71 @@ def test_a_district_prints_what_a_thaw_order_would_reach(console):
     answer = call(console, ["roads", "district", "4"])
     assert len(answer.output.splitlines()) == 7
     assert call(console, ["roads", "district", "9"]).output == ""
+
+
+def test_the_corner_list_prints_the_tight_ones_one_to_a_line(console):
+    answer = call(console, ["roads", "corners"])
+    assert answer.exit_code == 0
+    lines = answer.output.splitlines()
+    assert len(lines) == 2
+    assert lines[0].startswith("madison  SR8-1  TR104-1  35")
+
+
+def test_a_wider_radius_puts_more_corners_on_the_printed_list(console):
+    answer = call(console, ["roads", "corners", "--under", "70"])
+    assert answer.exit_code == 0
+    assert len(answer.output.splitlines()) > 2
+
+
+def test_a_radius_nothing_is_under_prints_a_sentence(console):
+    answer = call(console, ["roads", "corners", "--under", "10"])
+    assert answer.exit_code == 0
+    assert answer.output.strip() == "nothing on the card index is under that radius"
+
+
+def test_the_corner_list_takes_a_pair_of_dates(console):
+    answer = call(console, ["roads", "corners", "--from", "2025-01-01", "--to", "2025-12-31"])
+    assert answer.exit_code == 0
+    assert "madison" in answer.output
+
+
+def test_one_written_route_comes_back_corner_by_corner(console):
+    answer = call(console, ["roads", "turn", "waterville", "US201-1", "US201-2", "US2-1", "SR8-1"])
+    assert answer.exit_code == 0
+    lines = answer.output.splitlines()
+    assert lines[0] == "corners on waterville to madison"
+    assert "clear" in lines[1]
+
+
+def test_a_long_load_on_the_same_route_is_stopped_and_says_where(console):
+    answer = call(
+        console,
+        [
+            "roads",
+            "turn",
+            "waterville",
+            "US201-1",
+            "US201-2",
+            "US2-1",
+            "SR8-1",
+            "--length",
+            "150'",
+        ],
+    )
+    assert answer.exit_code == 0
+    assert answer.output.splitlines()[-1] == "this load is stopped at 2 of them"
+
+
+def test_a_rear_overhang_is_read_on_the_turn_command(console):
+    plain = call(console, ["roads", "turn", "waterville", "US201-1", "US201-2", "US2-1", "SR8-1"])
+    hanging = call(
+        console,
+        ["roads", "turn", "waterville", "US201-1", "US201-2", "US2-1", "SR8-1", "--rear", "20'"],
+    )
+    assert plain.output != hanging.output
+    assert "will not get round" in hanging.output
+
+
+def test_a_route_that_cannot_be_driven_is_a_refusal_rather_than_a_traceback(console):
+    answer = call(console, ["roads", "turn", "waterville", "SR8-1"])
+    assert answer.exit_code != 0

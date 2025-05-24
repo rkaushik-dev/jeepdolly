@@ -8,15 +8,26 @@ The load prints what it did and what it could not read, and it commits only if
 it is not a dry run. The dry run is what gets used first, every time, because
 the state's file has three bad lines in it every time and the office wants to
 see them before the good lines go in.
+
+The corner commands are here rather than under reports because they are about
+the road rather than about the money, and because the counter looks for them
+where the segment lookup is.
 """
 
 from __future__ import annotations
 
 import sys
+from datetime import date
 from pathlib import Path
+from typing import Any
 
 import click
 
+from ..domain.envelope import Envelope
+from ..persistence.books import network_from
+from ..reports.corners import route_report, wall_list
+from ..routing.itinerary import Itinerary
+from ..routing.turns import coded_corners
 from ..services.roadlog import export_log, load_log
 from .main import Console, main, say
 
@@ -80,3 +91,43 @@ def district(console: Console, number: int) -> None:
     with console.work() as work:
         for row in work.network.in_district(number):
             say(row.ident, row.to_domain().route, row.town, row.length)
+
+
+@roads.command("corners")
+@click.option("--from", "start", type=click.DateTime(["%Y-%m-%d"]), default=None)
+@click.option("--to", "end", type=click.DateTime(["%Y-%m-%d"]), default=None)
+@click.option("--under", type=int, default=None, help="Radius in feet, tighter than the default.")
+@click.pass_obj
+def corners(console: Console, start: Any, end: Any, under: int | None) -> None:
+    """The list on the wall: the tight corners and what turned at each."""
+    first, last = _year(start, end)
+    with console.work() as work:
+        found = wall_list(work.db, coded_corners(), first, last, feet=under)
+    if not found:
+        say("nothing on the card index is under that radius")
+        return
+    for one in found:
+        say(one.corner.node, one.corner.into, one.corner.out_of, one.corner.radius_feet, one.turned)
+
+
+@roads.command("turn")
+@click.argument("origin")
+@click.argument("segments", nargs=-1, required=True)
+@click.option("--length", default="80'", help="Overall length of the combination.")
+@click.option("--rear", default="0", help="Rear overhang.")
+@click.pass_obj
+def turn(console: Console, origin: str, segments: tuple[str, ...], length: str, rear: str) -> None:
+    """What one load meets on one written route, corner by corner."""
+    envelope = Envelope.read("8'6", "13'6", length, "0", rear)
+    with console.work() as work:
+        itinerary = Itinerary(network_from(work.db), origin, segments)
+    for line in route_report(itinerary, envelope, coded_corners()):
+        click.echo(line)
+
+
+def _year(start: Any, end: Any) -> tuple[date, date]:
+    """The two dates, defaulting to the calendar year the office is in."""
+    if start is not None and end is not None:
+        return start.date(), end.date()
+    today = date.today()
+    return date(today.year, 1, 1), date(today.year, 12, 31)
