@@ -25,8 +25,10 @@ from sqlalchemy.orm import Session
 from ..domain.carrier import CarrierRegister
 from ..domain.network import Network, Node
 from ..domain.restriction import Curfew, Restriction, RestrictionBook
+from ..escorts.register import EscortRegister
 from ..structures.inventory import StructureBook
 from .models.carriers import CarrierRow
+from .models.escorts import PilotCardRow, PilotCompanyRow
 from .models.network import NodeRow, RestrictionRow, SegmentRow
 from .models.structures import StructureRow
 
@@ -92,4 +94,23 @@ def carriers_from(session: Session, on: date) -> CarrierRegister:
     register = CarrierRegister()
     for row in session.query(CarrierRow).all():
         register.add(row.to_domain(on))
+    return register
+
+
+def escorts_from(session: Session) -> EscortRegister:
+    """The pilot car register, companies first so the cards have somewhere to go.
+
+    A card whose company has been deleted out from under it is dropped rather
+    than raised. The foreign key means that should not happen, and a register
+    that refuses to build at all because of one orphan row would take the
+    whole office down over a piece of housekeeping.
+    """
+    register = EscortRegister()
+    for row in session.query(PilotCompanyRow).all():
+        register.add_company(row.to_domain())
+    for card in session.query(PilotCardRow).all():
+        operator = card.to_domain()
+        if operator.company not in {one.ident for one in register.companies()}:
+            continue
+        register.certify(operator)
     return register
