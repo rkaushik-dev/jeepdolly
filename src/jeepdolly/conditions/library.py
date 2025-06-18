@@ -152,6 +152,8 @@ STANDARD_TEXTS = [
     ("E-02", Category.ESCORT, "{count} certified pilot car behind the load.", 20),
     ("E-03", Category.ESCORT, "Front pilot car carries a height pole set one inch high.", 30),
     ("E-04", Category.ESCORT, "Police escort, arranged by the carrier.", 40),
+    ("E-05", Category.ESCORT, "Pilot cars for this move: {cards}.", 50),
+    ("E-06", Category.ESCORT, "Tell the office who is piloting before the load moves.", 60),
     ("M-01", Category.MARKING, "OVERSIZE LOAD banners front and rear.", 10),
     ("M-02", Category.MARKING, "{count} eighteen inch red flags on corners and widest points.", 20),
     ("M-03", Category.MARKING, "{count} amber lamps in place of flags.", 30),

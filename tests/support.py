@@ -27,6 +27,7 @@ from jeepdolly.domain.highway import Jurisdiction, Route
 from jeepdolly.domain.network import Network, Node, Segment
 from jeepdolly.domain.restriction import RestrictionBook
 from jeepdolly.domain.stream import AxleStream
+from jeepdolly.escorts.register import Company, Endorsement, EscortRegister, Operator
 from jeepdolly.fees.price import Line, Quote
 from jeepdolly.fees.schedule import standard_book as standard_schedules
 from jeepdolly.limits.size import standard_book as standard_sizes
@@ -205,7 +206,26 @@ def a_carrier_register():
     return register
 
 
-def an_office(restrictions=None, seasons=None, turns=None):
+def an_escort_register():
+    """One pilot car company with three cards, one of them run out."""
+    register = EscortRegister()
+    register.add_company(Company("PC-1", "Kennebec Pilot Car", "Waterville", "207 555 0142"))
+    register.certify(Operator("C-1001", "R Dubois", "PC-1", date(2023, 5, 1), date(2026, 4, 30)))
+    register.certify(
+        Operator(
+            "C-1002",
+            "M Levesque",
+            "PC-1",
+            date(2023, 5, 1),
+            date(2026, 4, 30),
+            frozenset({Endorsement.HEIGHT_POLE}),
+        )
+    )
+    register.certify(Operator("C-1003", "A Poulin", "PC-1", date(2021, 5, 1), date(2024, 4, 30)))
+    return register
+
+
+def an_office(restrictions=None, seasons=None, turns=None, escorts=None):
     """The whole office wired up against the test network."""
     return Office(
         network=road_log(),
@@ -217,6 +237,7 @@ def an_office(restrictions=None, seasons=None, turns=None):
         carriers=a_carrier_register(),
         structures=structure_book(),
         turns=turns if turns is not None else coded_corners(),
+        escorts=escorts if escorts is not None else an_escort_register(),
         schedules=standard_schedules(),
         library=standard_library(),
         numbering=Numbering(),

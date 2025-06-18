@@ -15,7 +15,7 @@ LIBRARY = standard_library()
 
 
 def test_the_library_holds_the_office_wording_under_stable_codes():
-    assert len(LIBRARY) == 31
+    assert len(LIBRARY) == 33
     assert "T-02" in LIBRARY
     assert LIBRARY.get("T-02").category is Category.TRAVEL
     assert str(LIBRARY.get("T-02")) == "T-02 (travel)"

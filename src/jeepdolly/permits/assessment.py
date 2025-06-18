@@ -5,6 +5,11 @@ order against one application and produces either a permit or a list of
 reasons. It is the only place that knows the order, and the order is the
 office procedure rather than a technical dependency.
 
+The pilot cars a hauler has named are read after the escort table, because
+the table says how many are wanted and the naming is checked against that. A
+card that is no good is a refusal even when the load would otherwise be fine,
+and naming nobody at all is not.
+
 Carrier first, because a suspended carrier is not entitled to the office's
 afternoon. Commodity next, because a divisible load is refused before anybody
 walks a route. Then the route, either the one written on the application or one
@@ -36,6 +41,8 @@ from ..domain.envelope import Envelope
 from ..domain.highway import HighwayClass
 from ..errors import Impossible
 from ..escorts.marking import Marking, marking_for
+from ..escorts.naming import Naming
+from ..escorts.naming import check as check_cards
 from ..escorts.rules import Escorts
 from ..escorts.rules import required as escorts_required
 from ..fees.price import Quote, price
@@ -66,6 +73,7 @@ class Assessment:
     route: RouteReading | None
     structures: StructureReading | None
     escorts: Escorts | None
+    naming: Naming | None
     marking: Marking | None
     limits: TravelLimits | None
     mileage: Mileage | None
@@ -141,6 +149,8 @@ def assess(office: Office, application: Application, day: date | None = None) ->
 
     superload = classification.kind is PermitKind.SUPERLOAD
     escorts = escorts_required(envelope, itinerary.classes(), superload=superload)
+    naming = check_cards(office.escorts, application.escort_cards, escorts, day)
+    refusals.extend(naming.refusals)
     marking = marking_for(envelope, superload=superload)
     limits = limits_for(envelope, superload=superload, high_centre=commodity.high_centre)
     mileage = chargeable(itinerary)
@@ -165,6 +175,7 @@ def assess(office: Office, application: Application, day: date | None = None) ->
             route=route,
             structures=structures,
             liftable_axles=stream.liftable_count(),
+            naming=naming,
         )
     elif not refusals:
         refusals.append("this load is legal and needs no permit")
@@ -177,6 +188,7 @@ def assess(office: Office, application: Application, day: date | None = None) ->
         route=route,
         structures=structures,
         escorts=escorts,
+        naming=naming,
         marking=marking,
         limits=limits,
         mileage=mileage,
@@ -196,6 +208,7 @@ def _nothing(application: Application, refusals: tuple[str, ...]) -> Assessment:
         route=None,
         structures=None,
         escorts=None,
+        naming=None,
         marking=None,
         limits=None,
         mileage=None,

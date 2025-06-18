@@ -15,6 +15,7 @@ from ..domain.carrier import CarrierRegister
 from ..domain.commodity import CommodityBook
 from ..domain.network import Network
 from ..domain.restriction import RestrictionBook
+from ..escorts.register import EscortRegister
 from ..fees.schedule import ScheduleBook
 from ..limits.size import SizeBook
 from ..limits.statutory import StatutoryBook
@@ -38,6 +39,7 @@ class Office:
     carriers: CarrierRegister
     structures: StructureBook
     turns: TurnBook
+    escorts: EscortRegister
     schedules: ScheduleBook
     library: ConditionLibrary
     numbering: Numbering

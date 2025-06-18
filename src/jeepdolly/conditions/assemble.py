@@ -25,6 +25,7 @@ which is why the general conditions are added last.
 from __future__ import annotations
 
 from ..escorts.marking import Marking
+from ..escorts.naming import Naming
 from ..escorts.rules import Escorts
 from ..routing.evaluate import RouteReading
 from ..structures.analysis import Reading as StructureReading
@@ -71,6 +72,7 @@ def assemble(
     route: RouteReading | None = None,
     structures: StructureReading | None = None,
     liftable_axles: int = 0,
+    naming: Naming | None = None,
 ) -> tuple[Condition, ...]:
     """Every condition this permit carries, in printing order."""
     sheet = Sheet(library)
@@ -81,6 +83,8 @@ def assemble(
     if structures is not None:
         _structures(sheet, structures)
     _escorts(sheet, escorts)
+    if naming is not None and escorts.total:
+        _naming(sheet, naming)
     _marking(sheet, marking)
     if liftable_axles:
         sheet.add("Q-02")
@@ -138,6 +142,14 @@ def _escorts(sheet: Sheet, escorts: Escorts) -> None:
         sheet.add("E-03")
     if escorts.police:
         sheet.add("E-04")
+
+
+def _naming(sheet: Sheet, naming: Naming) -> None:
+    """Who is piloting, or a line saying the office has not been told yet."""
+    if naming.good:
+        sheet.add("E-05", cards=naming.line())
+    if not naming.complete:
+        sheet.add("E-06")
 
 
 def _marking(sheet: Sheet, marking: Marking) -> None:

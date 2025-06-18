@@ -18,6 +18,10 @@ The travel span is on the application rather than the permit because the
 hauler asks for dates and the office grants them, and a permit that quietly
 starts on a different day from the one asked for is a permit that gets used on
 the wrong day.
+
+The pilot car cards are here for the same reason and they are allowed to be
+empty. A carrier does not know on Monday who is free on Thursday, and an
+office that made him guess would be told a name and never told the change.
 """
 
 from __future__ import annotations
@@ -91,6 +95,9 @@ class Application:
     applicant: Applicant
     filed: date
     route: tuple[str, ...] = ()
+    # Named late, usually the day before the move, and often not at all
+    # when the application is first typed. See escorts.naming.
+    escort_cards: tuple[str, ...] = ()
     state: ApplicationState = ApplicationState.DRAFT
     notes: str = ""
     # Not part of equality. Two applications are the same application when they

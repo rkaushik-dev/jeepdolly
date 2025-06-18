@@ -41,6 +41,7 @@ from ..permits.numbering import Numbering
 from ..permits.office import Office
 from ..persistence.books import (
     carriers_from,
+    escorts_from,
     network_from,
     restrictions_from,
     structures_from,
@@ -114,6 +115,7 @@ def office_from(work: UnitOfWork, on: date | None = None) -> Office:
         # The card index has never been anywhere but the code. It moves
         # perhaps twice a year and nobody has asked to edit it on a screen.
         turns=coded_corners(),
+        escorts=escorts_from(session),
         schedules=schedules_for(session),
         library=standard_library(),
         # The counter is the one in the database, inside this transaction, so
