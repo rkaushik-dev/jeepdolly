@@ -30,6 +30,7 @@ ACTIONS = frozenset(
         "application.submitted",
         "application.withdrawn",
         "application.refused",
+        "application.pilots_named",
         "permit.issued",
         "permit.voided",
         "permit.amended",

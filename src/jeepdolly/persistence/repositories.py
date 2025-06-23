@@ -126,6 +126,18 @@ class ApplicationRepository:
         row.state = application.state
         return row
 
+    def save_escort_cards(self, application: Application) -> ApplicationRow:
+        """Write the named pilot cars back, which is the one column that moves.
+
+        Everything else about an application is written once and read after
+        that. The cards move because they are named late and changed twice,
+        and rewriting the whole row for one column would drag the axles and
+        the pieces along with it.
+        """
+        row = self.row(application.reference)
+        row.escort_cards = ",".join(application.escort_cards)
+        return row
+
     def in_state(self, state: ApplicationState) -> tuple[ApplicationRow, ...]:
         query = (
             select(ApplicationRow)

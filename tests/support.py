@@ -46,6 +46,8 @@ from jeepdolly.persistence.models import (
     CommodityRow,
     InsuranceRow,
     NodeRow,
+    PilotCardRow,
+    PilotCompanyRow,
     SegmentRow,
     StructureRow,
 )
@@ -298,7 +300,21 @@ def seed(session):
     for structure in structure_book().on_segments(tuple(one.ident for one in network.segments())):
         session.add(StructureRow.of(structure))
     session.commit()
+    escorts = an_escort_register()
+    for company in escorts.companies():
+        session.add(PilotCompanyRow.of(company))
+    session.commit()
+    for operator in escorts.operators():
+        session.add(PilotCardRow.of(operator))
+    session.commit()
     return session
+
+
+def an_empty_database():
+    """The schema and nothing in it, for a test that wants to fill it itself."""
+    engine = memory_engine()
+    create_all(engine)
+    return session_factory(engine)
 
 
 def a_seeded_database():

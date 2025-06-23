@@ -125,6 +125,7 @@ class ApplicationIn(BaseModel):
     units: list[UnitIn] = Field(min_length=1)
     pieces: list[PieceIn] = Field(min_length=1)
     route: list[str] = Field(default_factory=list)
+    escort_cards: list[str] = Field(default_factory=list)
     notes: str = ""
 
     def to_domain(self, reference: str, filed: date, commodities: CommodityBook) -> Application:
@@ -159,6 +160,7 @@ class ApplicationIn(BaseModel):
             applicant=self.applicant.to_domain(),
             filed=filed,
             route=tuple(self.route),
+            escort_cards=tuple(self.escort_cards),
             notes=self.notes,
         )
 
@@ -215,6 +217,7 @@ class ApplicationOut(BaseModel):
     width: str
     height: str
     length: str
+    escort_cards: list[str] = Field(default_factory=list)
 
     @classmethod
     def of(cls, application: Application) -> ApplicationOut:
@@ -231,6 +234,7 @@ class ApplicationOut(BaseModel):
             width=str(envelope.width),
             height=str(envelope.height),
             length=str(envelope.length),
+            escort_cards=list(application.escort_cards),
         )
 
 

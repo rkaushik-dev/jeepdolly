@@ -81,6 +81,23 @@ def submit_application(
     return ApplicationOut.of(application)
 
 
+@router.post("/{reference}/pilots", response_model=ApplicationOut)
+def name_pilots(
+    reference: str,
+    cards: list[str],
+    on: date | None = Query(default=None),
+    work: UnitOfWork = Depends(unit_of_work),
+    who: Caller = Depends(needs(Role.CLERK)),
+) -> ApplicationOut:
+    """Name the pilot cars, or change them, which happens more than once."""
+    day = on or date.today()
+    application = counter.name_pilots(
+        work, office_from(work, day), reference, tuple(cards), who.person, day
+    )
+    work.commit()
+    return ApplicationOut.of(application)
+
+
 @router.post("/{reference}/withdraw", response_model=ApplicationOut)
 def withdraw_application(
     reference: str,

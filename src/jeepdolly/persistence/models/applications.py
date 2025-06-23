@@ -61,6 +61,7 @@ class ApplicationRow(Base):
     applicant_phone: Mapped[str] = mapped_column(String(CODE_LENGTH))
     applicant_email: Mapped[str] = mapped_column(String(NAME_LENGTH), default="")
     route: Mapped[str] = mapped_column(String(TEXT_LENGTH), default="")
+    escort_cards: Mapped[str] = mapped_column(String(TEXT_LENGTH), default="")
     notes: Mapped[str] = mapped_column(String(TEXT_LENGTH), default="")
     width = mapped_column(InchesType)
     height = mapped_column(InchesType)
@@ -94,6 +95,15 @@ class ApplicationRow(Base):
     def route_idents(self) -> tuple[str, ...]:
         """The written route, empty before the column default has been applied."""
         return tuple(one for one in (self.route or "").split(",") if one)
+
+    @property
+    def cards(self) -> tuple[str, ...]:
+        """The pilot car cards named, in the order the hauler wrote them.
+
+        Order is kept because the first card named is the one the counter
+        telephones, and a set would lose that for no gain at all.
+        """
+        return tuple(one for one in (self.escort_cards or "").split(",") if one)
 
     @property
     def axle_count(self) -> int:

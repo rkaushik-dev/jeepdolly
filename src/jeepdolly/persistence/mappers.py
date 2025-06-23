@@ -55,6 +55,7 @@ def application_to_row(application: Application) -> ApplicationRow:
         applicant_phone=application.applicant.phone,
         applicant_email=application.applicant.email,
         route=",".join(application.route),
+        escort_cards=",".join(application.escort_cards),
         notes=application.notes,
         width=envelope.width,
         height=envelope.height,
@@ -143,6 +144,7 @@ def row_to_application(row: ApplicationRow, commodities: CommodityBook) -> Appli
         applicant=Applicant(row.applicant_name, row.applicant_phone, row.applicant_email),
         filed=row.filed,
         route=row.route_idents,
+        escort_cards=row.cards,
         state=row.state,
         notes=row.notes or "",
     )

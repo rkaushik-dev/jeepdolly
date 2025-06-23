@@ -9,14 +9,14 @@ from jeepdolly.escorts.register import Company, Endorsement, Operator, Standing
 from jeepdolly.persistence.books import escorts_from
 from jeepdolly.persistence.models.escorts import PilotCardRow, PilotCompanyRow, pack, unpack
 from jeepdolly.persistence.unitofwork import UnitOfWork
-from support import a_seeded_database
+from support import an_empty_database
 
 JUNE = date(2025, 6, 10)
 
 
 @pytest.fixture
 def work():
-    with UnitOfWork(a_seeded_database()) as unit:
+    with UnitOfWork(an_empty_database()) as unit:
         yield unit
 
 

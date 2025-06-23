@@ -81,6 +81,44 @@ def withdraw(work: UnitOfWork, reference: str, who: str, on: date) -> Applicatio
     return application
 
 
+def name_pilots(
+    work: UnitOfWork,
+    office: Office,
+    reference: str,
+    cards: tuple[str, ...],
+    who: str,
+    on: date,
+) -> Application:
+    """Name the pilot cars on an open application, or change who they are.
+
+    The register is read here as well as at assessment, on purpose. A card
+    that is not on the register is nearly always a typing mistake, and the
+    counter wants to hear about it while the carrier is still on the
+    telephone rather than in the refusal letter on Thursday.
+
+    Whether the cards are good for the day of travel is not asked here. That
+    is the assessment's question, the answer changes when a certificate
+    lapses, and a card named in March for a move in June is allowed to be one
+    that runs out in between as long as it is renewed first.
+    """
+    application = work.applications.get(reference)
+    if not application.state.open:
+        raise NotAllowed(f"{reference} is {application.state} and the pilots cannot be changed")
+    for card in cards:
+        office.escorts.operator(card)
+    application.escort_cards = tuple(cards)
+    work.applications.save_escort_cards(application)
+    audit.record(
+        work.db,
+        "application.pilots_named",
+        who,
+        "application",
+        reference,
+        detail=", ".join(cards) or "nobody",
+    )
+    return application
+
+
 def look_at(office: Office, application: Application, on: date | None = None) -> Assessment:
     """Assess an application for the day it says it is travelling."""
     return assess(office, application, on or application.start)
