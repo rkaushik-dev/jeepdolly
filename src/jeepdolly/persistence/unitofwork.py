@@ -36,6 +36,7 @@ from .repositories import (
     CommodityRepository,
     NetworkRepository,
     PermitRepository,
+    PilotRepository,
 )
 
 
@@ -140,6 +141,10 @@ class UnitOfWork:
     @property
     def network(self) -> NetworkRepository:
         return NetworkRepository(self._require())
+
+    @property
+    def pilots(self) -> PilotRepository:
+        return PilotRepository(self._require())
 
     @property
     def counter(self) -> DatabaseCounter:

@@ -111,4 +111,4 @@ def test_the_vocabulary_covers_the_things_the_office_does():
     assert "carrier.suspended" in audit.ACTIONS
     assert "road.closed" in audit.ACTIONS
     assert "tariff.filed" in audit.ACTIONS
-    assert len(audit.ACTIONS) == 22
+    assert len(audit.ACTIONS) == 28
