@@ -42,7 +42,8 @@ from ..limits.statutory import StatutoryBook
 from ..measure import Pounds
 from ..seasons import SeasonBook
 from .itinerary import Itinerary
-from .turns import TurnBook, close_run, too_tight
+from .sweep import close_run, too_tight
+from .turns import TurnBook
 
 
 @dataclass(frozen=True)

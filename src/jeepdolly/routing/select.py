@@ -49,7 +49,8 @@ from ..measure import Pounds
 from ..seasons import SeasonBook
 from .evaluate import segment_obstructions
 from .itinerary import Itinerary
-from .turns import TurnBook, radius_wanted
+from .sweep import radius_wanted
+from .turns import TurnBook
 
 #: Extra hundredths of a mile charged per hundredth on the lesser roads.
 PENALTY = {

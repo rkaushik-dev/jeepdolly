@@ -1,25 +1,9 @@
-"""Corners, which stop a long load more often than a bridge does."""
+"""The card index of corners, and what it will and will not file."""
 
 import pytest
 
-from jeepdolly.domain.envelope import Envelope
 from jeepdolly.errors import Conflict, Impossible
-from jeepdolly.routing.itinerary import Itinerary
-from jeepdolly.routing.turns import (
-    Corner,
-    TurnBook,
-    close_run,
-    corners_on,
-    radius_wanted,
-    too_tight,
-)
-from support import road_log
-
-ACROSS = ("US201-1", "US201-2", "SA148-2", "SR43-1")
-
-
-def load(length="75'", rear="0"):
-    return Envelope.read("12'", "13'6", length, "0", rear)
+from jeepdolly.routing.turns import Corner, TurnBook
 
 
 def book(radius=40):
@@ -27,10 +11,6 @@ def book(radius=40):
     made.add(Corner("skowhegan", "US201-2", "SA148-2", radius, "granite kerb and a bank"))
     made.add(Corner("canaan", "SA148-2", "SR43-1", 60))
     return made
-
-
-def trip(idents=ACROSS, origin="waterville"):
-    return Itinerary(road_log(), origin, idents)
 
 
 def test_a_corner_is_the_same_corner_driven_either_way():
@@ -70,77 +50,3 @@ def test_the_tight_corners_are_the_list_the_office_keeps_on_the_wall():
     made = book(radius=32)
     assert [one.node for one in made.tight()] == ["skowhegan"]
     assert made.tight(feet=20) == ()
-
-
-def test_a_plain_length_wants_the_plain_radius():
-    assert radius_wanted(load(length="75'")) == 40
-    assert radius_wanted(load(length="70'")) == 40
-
-
-def test_every_foot_past_the_plain_length_wants_another_foot_of_radius():
-    assert radius_wanted(load(length="95'")) == 60
-
-
-def test_a_rear_overhang_swings_wide_and_wants_two_feet_for_one():
-    assert radius_wanted(load(rear="10'")) == 60
-    assert radius_wanted(load(length="95'", rear="10'")) == 80
-
-
-def test_only_the_corners_the_trip_actually_turns_at_are_read():
-    found = corners_on(trip(), book())
-    assert [one.node for one in found] == ["skowhegan", "canaan"]
-    straight = corners_on(trip(idents=("US201-1", "US201-2")), book())
-    assert straight == ()
-
-
-def test_a_short_load_gets_round_everything_on_the_route():
-    assert too_tight(trip(), load(), book()) == ()
-
-
-def test_a_long_load_is_stopped_at_the_corner_that_is_too_tight():
-    found = too_tight(trip(), load(length="95'"), book())
-    assert [one.corner.node for one in found] == ["skowhegan"]
-    assert found[0].wanted == 60
-    assert found[0].short_by == 20
-    assert "this load wants 60 ft" in str(found[0])
-
-
-def test_a_load_long_enough_is_stopped_at_every_corner():
-    found = too_tight(trip(), load(length="140'"), book())
-    assert [one.corner.node for one in found] == ["skowhegan", "canaan"]
-
-
-def test_a_corner_nobody_measured_is_not_in_the_way_of_anything():
-    empty = TurnBook()
-    assert too_tight(trip(), load(length="200'"), empty) == ()
-
-
-def test_a_corner_that_clears_by_plenty_is_not_worth_a_condition():
-    assert close_run(trip(), load(), book(radius=80)) == ()
-
-
-def test_a_corner_that_clears_by_a_little_comes_back_as_a_close_run():
-    found = close_run(trip(), load(), book(radius=46))
-    assert [one.corner.node for one in found] == ["skowhegan"]
-    assert found[0].wanted == 40
-    assert found[0].spare == 6
-    assert "clears by 6 ft" in str(found[0])
-
-
-def test_a_corner_the_load_will_not_get_round_is_not_a_close_run():
-    found = close_run(trip(), load(length="95'"), book())
-    assert [one.corner.node for one in found] == ["canaan"]
-
-
-def test_the_margin_is_an_argument_and_a_wider_one_catches_more():
-    plain = close_run(trip(), load(length="95'"), book(radius=80))
-    assert [one.corner.node for one in plain] == ["canaan"]
-    wide = close_run(trip(), load(length="95'"), book(radius=80), margin=25)
-    assert [one.corner.node for one in wide] == ["skowhegan", "canaan"]
-
-
-def test_the_close_run_and_the_refusal_never_name_the_same_corner():
-    envelope = load(length="95'")
-    tight = {one.corner.node for one in too_tight(trip(), envelope, book())}
-    near = {one.corner.node for one in close_run(trip(), envelope, book())}
-    assert tight & near == set()

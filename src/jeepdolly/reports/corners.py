@@ -31,7 +31,8 @@ from ..domain.envelope import Envelope
 from ..permits.permit import PermitState
 from ..persistence.models.permits import PermitRow
 from ..routing.itinerary import Itinerary
-from ..routing.turns import Corner, TurnBook, close_run, corners_on, radius_wanted, too_tight
+from ..routing.sweep import close_run, corners_on, radius_wanted, too_tight
+from ..routing.turns import Corner, TurnBook
 
 
 @dataclass(frozen=True)
