@@ -56,6 +56,10 @@ class Series(str, Enum):
     #: Not a permit at all. An application reference, off the same counter so
     #: that a clerk reading one out cannot confuse it with a permit number.
     FILE = "F"
+    #: Not a permit either. A citation off the roadside, on the same counter
+    #: for the same reason: one number space, and nothing in it means two
+    #: things.
+    CITATION = "E"
 
     def __str__(self) -> str:
         return self.value

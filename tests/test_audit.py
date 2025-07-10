@@ -106,9 +106,42 @@ def test_the_trail_goes_back_with_the_work_that_was_rolled_back(session):
     assert session.scalars(select(AuditRow)).all() == []
 
 
+#: What an action may be about. A new word here is a deliberate decision.
+SUBJECTS = {
+    "application",
+    "carrier",
+    "citation",
+    "key",
+    "payment",
+    "permit",
+    "pilot",
+    "review",
+    "road",
+    "structure",
+    "tariff",
+}
+
+
 def test_the_vocabulary_covers_the_things_the_office_does():
     assert "permit.issued" in audit.ACTIONS
     assert "carrier.suspended" in audit.ACTIONS
     assert "road.closed" in audit.ACTIONS
     assert "tariff.filed" in audit.ACTIONS
-    assert len(audit.ACTIONS) == 28
+    assert "citation.filed" in audit.ACTIONS
+
+
+def test_every_action_is_a_subject_and_a_past_tense_verb():
+    # The count used to be asserted here and it was bumped by hand every time
+    # the office learned to do something new, which taught nobody anything.
+    # What matters is the shape: a subject this office has, and one word for
+    # what happened to it.
+    for action in audit.ACTIONS:
+        subject, _, verb = action.partition(".")
+        assert subject in SUBJECTS, action
+        assert verb, action
+        assert verb == verb.lower(), action
+
+
+def test_every_subject_the_office_has_appears_at_least_once():
+    found = {one.partition(".")[0] for one in audit.ACTIONS}
+    assert found == SUBJECTS
