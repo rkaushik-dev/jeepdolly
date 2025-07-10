@@ -33,6 +33,7 @@ from .models.permits import CounterRow
 from .repositories import (
     ApplicationRepository,
     CarrierRepository,
+    CitationRepository,
     CommodityRepository,
     NetworkRepository,
     PermitRepository,
@@ -141,6 +142,10 @@ class UnitOfWork:
     @property
     def network(self) -> NetworkRepository:
         return NetworkRepository(self._require())
+
+    @property
+    def citations(self) -> CitationRepository:
+        return CitationRepository(self._require())
 
     @property
     def pilots(self) -> PilotRepository:
