@@ -27,6 +27,7 @@ from jeepdolly.domain.highway import Jurisdiction, Route
 from jeepdolly.domain.network import Network, Node, Segment
 from jeepdolly.domain.restriction import RestrictionBook
 from jeepdolly.domain.stream import AxleStream
+from jeepdolly.enforcement.standing import EnforcementBook
 from jeepdolly.escorts.register import Company, Endorsement, EscortRegister, Operator
 from jeepdolly.fees.price import Line, Quote
 from jeepdolly.fees.schedule import standard_book as standard_schedules
@@ -227,7 +228,7 @@ def an_escort_register():
     return register
 
 
-def an_office(restrictions=None, seasons=None, turns=None, escorts=None):
+def an_office(restrictions=None, seasons=None, turns=None, escorts=None, enforcement=None):
     """The whole office wired up against the test network."""
     return Office(
         network=road_log(),
@@ -240,6 +241,7 @@ def an_office(restrictions=None, seasons=None, turns=None, escorts=None):
         structures=structure_book(),
         turns=turns if turns is not None else coded_corners(),
         escorts=escorts if escorts is not None else an_escort_register(),
+        enforcement=enforcement if enforcement is not None else EnforcementBook(),
         schedules=standard_schedules(),
         library=standard_library(),
         numbering=Numbering(),

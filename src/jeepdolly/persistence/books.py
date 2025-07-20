@@ -25,9 +25,12 @@ from sqlalchemy.orm import Session
 from ..domain.carrier import CarrierRegister
 from ..domain.network import Network, Node
 from ..domain.restriction import Curfew, Restriction, RestrictionBook
+from ..enforcement.citation import CONTEST_DAYS, CitationState
+from ..enforcement.standing import Account, EnforcementBook, Owed, due_day
 from ..escorts.register import EscortRegister
 from ..structures.inventory import StructureBook
 from .models.carriers import CarrierRow
+from .models.enforcement import CitationRow
 from .models.escorts import PilotCardRow, PilotCompanyRow
 from .models.network import NodeRow, RestrictionRow, SegmentRow
 from .models.structures import StructureRow
@@ -114,3 +117,29 @@ def escorts_from(session: Session) -> EscortRegister:
             continue
         register.certify(operator)
     return register
+
+
+def enforcement_from(session: Session) -> EnforcementBook:
+    """What every carrier owes, grouped, with the day each one falls due.
+
+    Only citations still expecting money are read. A paid one is settled, and
+    a dismissed or voided one was never owed, so neither belongs in an account
+    that exists to answer one question: is this carrier holding up the office.
+    """
+    owed: dict[int, list[Owed]] = {}
+    for row in session.query(CitationRow).all():
+        if not CitationState(row.state).owing:
+            continue
+        owed.setdefault(row.usdot, []).append(
+            Owed(
+                number=row.number,
+                written=row.written,
+                amount=row.amount,
+                due=due_day(row.written, CONTEST_DAYS),
+                contested=row.state is CitationState.CONTESTED,
+            )
+        )
+    book = EnforcementBook()
+    for usdot, unpaid in owed.items():
+        book.add(Account(usdot, tuple(sorted(unpaid, key=lambda one: one.number))))
+    return book

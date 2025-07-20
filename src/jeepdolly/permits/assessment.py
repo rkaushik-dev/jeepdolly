@@ -11,8 +11,12 @@ card that is no good is a refusal even when the load would otherwise be fine,
 and naming nobody at all is not.
 
 Carrier first, because a suspended carrier is not entitled to the office's
-afternoon. Commodity next, because a divisible load is refused before anybody
-walks a route. Then the route, either the one written on the application or one
+afternoon, and the enforcement hold with it: a carrier that has neither paid
+nor contested a citation for seven weeks has stopped answering letters, and
+the office holds new permits until it starts again.
+
+Commodity next, because a divisible load is refused before anybody walks a
+route. Then the route, either the one written on the application or one
 the router finds. Then weight, which needs the route because the limits differ
 by class of road. Then classification, which needs both. Then the structures,
 the escorts, the marking, the travel limits, and last the price, because the
@@ -115,6 +119,9 @@ def assess(office: Office, application: Application, day: date | None = None) ->
     standing = carrier.standing(application.start, application.end, gross.value)
     if standing:
         refusals.append(standing)
+    hold = office.enforcement.hold(application.usdot, day)
+    if hold:
+        refusals.append(hold)
 
     commodity = office.commodities.get(application.commodity)
 
