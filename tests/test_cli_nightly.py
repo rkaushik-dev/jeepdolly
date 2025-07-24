@@ -7,11 +7,17 @@ import pytest
 from click.testing import CliRunner
 
 from jeepdolly import logs
+from jeepdolly.cli import nightly as commands
 from jeepdolly.cli.main import Console, main
 from jeepdolly.config import Settings
 from jeepdolly.permits.application import ApplicationState
 from jeepdolly.persistence.unitofwork import UnitOfWork
 from support import a_seeded_database, an_application
+
+# The import above registers the group. Without it this file passes in a
+# whole run, where some other test module imported it first, and fails on
+# its own.
+assert commands.nightly.name == "nightly"
 
 STALE = "2025-04-01"
 LATER = "2025-04-20"
@@ -52,7 +58,7 @@ def test_a_quiet_night_prints_a_heading_and_a_footing(console):
     answer = call(console, ["nightly", "--day", STALE])
     assert answer.exit_code == 0
     assert answer.output.splitlines()[0] == "nightly 2025-04-01"
-    assert answer.output.splitlines()[-1].endswith("0 lapsing")
+    assert answer.output.splitlines()[-1].endswith("0 cards  0 held")
 
 
 def test_the_sweep_writes_when_it_is_not_a_dry_run(console, factory, stale):

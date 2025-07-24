@@ -4,10 +4,11 @@ from datetime import date, timedelta
 
 import pytest
 
+from jeepdolly.enforcement.penalty import Offence
 from jeepdolly.errors import Impossible
 from jeepdolly.permits.application import ApplicationState
 from jeepdolly.persistence.unitofwork import UnitOfWork
-from jeepdolly.services import audit, nightly, studies
+from jeepdolly.services import audit, enforcement, nightly, studies
 from support import a_permit, a_seeded_database, an_application
 
 APRIL = date(2025, 4, 7)
@@ -39,7 +40,7 @@ def test_a_quiet_night_changes_nothing_and_says_so(factory):
     with UnitOfWork(factory) as work:
         found = nightly.sweep(work.db, APRIL)
     assert found.changed == 0
-    assert found.lines()[-1] == "0 expiring  0 withdrawn  0 slow  0 lapsing"
+    assert found.lines()[-1] == "0 expiring  0 withdrawn  0 slow  0 lapsing  0 cards  0 held"
 
 
 def test_a_permit_about_to_run_out_is_noticed_and_not_touched(factory):
@@ -139,3 +140,58 @@ def test_the_sweep_prints_a_heading_and_a_footing(factory):
     assert found.lines()[0] == "nightly 2025-04-07"
     assert str(found) == "nightly 2025-04-07, 0 changed"
     assert APRIL + timedelta(days=1) == date(2025, 4, 8)
+
+
+def test_a_pilot_card_running_out_inside_the_month_is_listed(factory):
+    with UnitOfWork(factory) as work:
+        found = nightly.sweep(work.db, date(2026, 4, 10))
+    assert found.cards == ["C-1001 R Dubois", "C-1002 M Levesque"]
+
+
+def test_a_card_that_ran_out_long_ago_is_not_listed_again(factory):
+    with UnitOfWork(factory) as work:
+        found = nightly.sweep(work.db, APRIL)
+    assert found.cards == []
+
+
+def test_nobody_is_held_on_a_night_with_no_citations(factory):
+    with UnitOfWork(factory) as work:
+        assert nightly.sweep(work.db, APRIL).held == []
+
+
+def test_a_carrier_that_crossed_the_line_today_is_reported_once(factory):
+    with UnitOfWork(factory) as work:
+        enforcement.file_citation(
+            work,
+            number="E-25-0417",
+            usdot=1204471,
+            officer="Sgt A Thibodeau",
+            offence=Offence.NO_PERMIT,
+            place="US201-2",
+            written=date(2025, 4, 8),
+            filed=date(2025, 4, 8),
+            who="M Cyr",
+        )
+        work.commit()
+        crossed = nightly.sweep(work.db, date(2025, 5, 30))
+        after = nightly.sweep(work.db, date(2025, 5, 31))
+    assert crossed.held == ["1204471 Bickford Heavy Haul $500.00"]
+    assert after.held == []
+
+
+def test_a_held_carrier_shows_on_the_printed_lines(factory):
+    with UnitOfWork(factory) as work:
+        enforcement.file_citation(
+            work,
+            number="E-25-0417",
+            usdot=1204471,
+            officer="Sgt A Thibodeau",
+            offence=Offence.NO_PERMIT,
+            place="US201-2",
+            written=date(2025, 4, 8),
+            filed=date(2025, 4, 8),
+            who="M Cyr",
+        )
+        work.commit()
+        found = nightly.sweep(work.db, date(2025, 5, 30))
+    assert "held  1204471 Bickford Heavy Haul $500.00" in found.lines()

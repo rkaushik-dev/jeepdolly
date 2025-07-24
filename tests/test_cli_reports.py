@@ -5,6 +5,7 @@ from datetime import date
 import pytest
 from click.testing import CliRunner
 
+from jeepdolly.cli import reports as commands
 from jeepdolly.cli.main import Console, main
 from jeepdolly.config import Settings
 from jeepdolly.domain.restriction import RestrictionKind
@@ -12,6 +13,11 @@ from jeepdolly.persistence.models import RestrictionRow
 from jeepdolly.persistence.unitofwork import UnitOfWork
 from jeepdolly.reports.issuance import issuance
 from support import a_permit, a_seeded_database, an_application
+
+# The import above registers the group. Without it this file passes in a
+# whole run, where some other test module imported it first, and fails on
+# its own.
+assert commands.report.name == "report"
 
 APRIL = "2025-04-07"
 
