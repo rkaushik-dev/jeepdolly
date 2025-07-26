@@ -22,12 +22,10 @@ by class of road. Then classification, which needs both. Then the structures,
 the escorts, the marking, the travel limits, and last the price, because the
 price depends on the classification and the mileage.
 
-The governing weight table is the tightest one the route touches. A trip that
-runs sixteen miles on the interstate and two hundred yards on a state aid road
-is held to the state aid table for those two hundred yards, and this system
-holds the whole trip to it. That is conservative and it is what the office
-does, because a permit that is legal for part of a route is not a thing that
-can be printed on one piece of paper.
+Three of the steps are named functions rather than paragraphs of this one,
+because they are the three somebody reads on their own: whether the carrier
+is entitled to anything, what table the load is weighed against, and what is
+in the way of it. The rest is a sequence and reads as one.
 
 An assessment is produced whether or not it can be permitted. A refused
 application still gets the whole assessment, because the letter has to say
@@ -43,6 +41,7 @@ from ..conditions.assemble import assemble
 from ..conditions.library import Condition
 from ..domain.envelope import Envelope
 from ..domain.highway import HighwayClass
+from ..domain.stream import AxleStream
 from ..errors import Impossible
 from ..escorts.marking import Marking, marking_for
 from ..escorts.naming import Naming
@@ -71,19 +70,23 @@ class Assessment:
     """Everything the office worked out about one application."""
 
     application: Application
-    itinerary: Itinerary | None
-    classification: Classification | None
-    weight: WeightReading | None
-    route: RouteReading | None
-    structures: StructureReading | None
-    escorts: Escorts | None
-    naming: Naming | None
-    marking: Marking | None
-    limits: TravelLimits | None
-    mileage: Mileage | None
-    quote: Quote | None
-    conditions: tuple[Condition, ...]
     refusals: tuple[str, ...]
+    # Everything below here is absent when the procedure stopped before it got
+    # that far, which is why they all default. They used to be required, and a
+    # second constructor existed to pass None to every one of them. Adding a
+    # field then meant editing two lists and forgetting the second one twice.
+    itinerary: Itinerary | None = None
+    classification: Classification | None = None
+    weight: WeightReading | None = None
+    route: RouteReading | None = None
+    structures: StructureReading | None = None
+    escorts: Escorts | None = None
+    naming: Naming | None = None
+    marking: Marking | None = None
+    limits: TravelLimits | None = None
+    mileage: Mileage | None = None
+    quote: Quote | None = None
+    conditions: tuple[Condition, ...] = ()
 
     @property
     def permittable(self) -> bool:
@@ -107,38 +110,52 @@ def governing_class(itinerary: Itinerary, statutes: StatutoryBook, day: date) ->
     return min(permittable, key=lambda one: statutes.on(one, day).gross.value)
 
 
-def assess(office: Office, application: Application, day: date | None = None) -> Assessment:
-    """Run the whole procedure once and report everything it found."""
-    day = day or application.start
-    refusals: list[str] = []
-    envelope = application.combination.envelope
-    stream = application.combination.stream
-    gross = stream.gross
+def entitled(office: Office, application: Application, day: date, gross: Pounds) -> tuple[str, ...]:
+    """Whether this carrier is entitled to the office's afternoon at all.
 
+    Two questions and neither of them looks at the load. A suspended carrier
+    is refused, and so is one that has neither paid nor argued a citation for
+    seven weeks. Both are about the carrier rather than the trip, which is
+    why they are read before anything is measured.
+    """
+    found = []
     carrier = office.carriers.get(application.usdot)
     standing = carrier.standing(application.start, application.end, gross.value)
     if standing:
-        refusals.append(standing)
+        found.append(standing)
     hold = office.enforcement.hold(application.usdot, day)
     if hold:
-        refusals.append(hold)
+        found.append(hold)
+    return tuple(found)
 
-    commodity = office.commodities.get(application.commodity)
 
-    itinerary = _route_for(office, application, envelope, gross, day)
-    if itinerary is None:
-        refusals.append("no route this load can take on the days asked for")
-        return _nothing(application, tuple(refusals))
+def weigh(
+    office: Office,
+    itinerary: Itinerary,
+    stream: AxleStream,
+    day: date,
+) -> WeightReading:
+    """Read the load against the tightest table the route touches.
 
+    A trip that runs sixteen miles on the interstate and two hundred yards on
+    a state aid road is held to the state aid table for the whole trip. That
+    is conservative and it is what the office does, because a permit legal
+    for part of a route is not a thing that can be printed on one sheet.
+    """
     table = office.statutes.on(governing_class(itinerary, office.statutes, day), day)
     order = office.seasons.in_force(f"district {itinerary.districts()[0]}", day)
-    weight = weight_rules.read(stream, table, order)
-    size_table = office.sizes.tightest(tuple(one for one in itinerary.classes() if one.permittable))
-    classification = classify(envelope, weight, size_table, commodity)
-    if classification.refusal:
-        refusals.append(classification.refusal)
+    return weight_rules.read(stream, table, order)
 
-    route = evaluate(
+
+def walk_route(
+    office: Office,
+    itinerary: Itinerary,
+    envelope: Envelope,
+    gross: Pounds,
+    day: date,
+) -> RouteReading:
+    """Everything in the way of this load on this route on this day."""
+    return evaluate(
         itinerary,
         envelope,
         gross,
@@ -148,6 +165,31 @@ def assess(office: Office, application: Application, day: date | None = None) ->
         office.statutes,
         turns=office.turns,
     )
+
+
+def assess(office: Office, application: Application, day: date | None = None) -> Assessment:
+    """Run the whole procedure once and report everything it found."""
+    day = day or application.start
+    refusals: list[str] = []
+    envelope = application.combination.envelope
+    stream = application.combination.stream
+    gross = stream.gross
+
+    refusals.extend(entitled(office, application, day, gross))
+    commodity = office.commodities.get(application.commodity)
+
+    itinerary = _route_for(office, application, envelope, gross, day)
+    if itinerary is None:
+        refusals.append("no route this load can take on the days asked for")
+        return Assessment(application, tuple(refusals))
+
+    weight = weigh(office, itinerary, stream, day)
+    size_table = office.sizes.tightest(tuple(one for one in itinerary.classes() if one.permittable))
+    classification = classify(envelope, weight, size_table, commodity)
+    if classification.refusal:
+        refusals.append(classification.refusal)
+
+    route = walk_route(office, itinerary, envelope, gross, day)
     refusals.extend(str(one) for one in route.fatal)
 
     structures = analyse_route(office.structures, itinerary, stream)
@@ -189,6 +231,7 @@ def assess(office: Office, application: Application, day: date | None = None) ->
 
     return Assessment(
         application=application,
+        refusals=tuple(refusals),
         itinerary=itinerary,
         classification=classification,
         weight=weight,
@@ -201,27 +244,6 @@ def assess(office: Office, application: Application, day: date | None = None) ->
         mileage=mileage,
         quote=quote,
         conditions=conditions,
-        refusals=tuple(refusals),
-    )
-
-
-def _nothing(application: Application, refusals: tuple[str, ...]) -> Assessment:
-    """An assessment that stopped before it had anything to report."""
-    return Assessment(
-        application=application,
-        itinerary=None,
-        classification=None,
-        weight=None,
-        route=None,
-        structures=None,
-        escorts=None,
-        naming=None,
-        marking=None,
-        limits=None,
-        mileage=None,
-        quote=None,
-        conditions=(),
-        refusals=refusals,
     )
 
 
