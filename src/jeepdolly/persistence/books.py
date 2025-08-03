@@ -29,11 +29,13 @@ from ..enforcement.citation import CONTEST_DAYS, CitationState
 from ..enforcement.standing import Account, EnforcementBook, Owed, due_day
 from ..escorts.register import EscortRegister
 from ..structures.inventory import StructureBook
+from ..utilities.lines import LineBook
 from .models.carriers import CarrierRow
 from .models.enforcement import CitationRow
 from .models.escorts import PilotCardRow, PilotCompanyRow
 from .models.network import NodeRow, RestrictionRow, SegmentRow
 from .models.structures import StructureRow
+from .models.utilities import LineCrossingRow, LineOwnerRow
 
 
 def network_from(session: Session) -> Network:
@@ -142,4 +144,23 @@ def enforcement_from(session: Session) -> EnforcementBook:
     book = EnforcementBook()
     for usdot, unpaid in owed.items():
         book.add(Account(usdot, tuple(sorted(unpaid, key=lambda one: one.number))))
+    return book
+
+
+def lines_from(session: Session) -> LineBook:
+    """Every measured wire, owners first so the crossings have somewhere to go.
+
+    A crossing whose owner has been deleted out from under it is dropped
+    rather than raised, the same rule the pilot register follows and for the
+    same reason: the office cannot be taken down by one piece of housekeeping.
+    """
+    book = LineBook()
+    for row in session.query(LineOwnerRow).all():
+        book.add_owner(row.to_domain())
+    known = {one.ident for one in book.owners()}
+    for wire in session.query(LineCrossingRow).all():
+        crossing = wire.to_domain()
+        if crossing.owner not in known:
+            continue
+        book.add(crossing)
     return book

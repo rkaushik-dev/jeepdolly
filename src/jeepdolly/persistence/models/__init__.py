@@ -30,6 +30,7 @@ from .tariff import (
     StatutoryRow,
     WeightStepRow,
 )
+from .utilities import LineCrossingRow, LineOwnerRow
 
 __all__ = [
     "ApiKeyRow",
@@ -47,6 +48,8 @@ __all__ = [
     "CounterRow",
     "FeeLineRow",
     "InsuranceRow",
+    "LineCrossingRow",
+    "LineOwnerRow",
     "MileFeeRow",
     "NodeRow",
     "PermitConditionRow",
