@@ -15,7 +15,7 @@ LIBRARY = standard_library()
 
 
 def test_the_library_holds_the_office_wording_under_stable_codes():
-    assert len(LIBRARY) == 33
+    assert len(LIBRARY) == 35
     assert "T-02" in LIBRARY
     assert LIBRARY.get("T-02").category is Category.TRAVEL
     assert str(LIBRARY.get("T-02")) == "T-02 (travel)"
@@ -89,4 +89,4 @@ def test_the_general_conditions_are_the_ones_on_every_permit():
 def test_the_codes_come_back_sorted_for_the_printed_appendix():
     codes = LIBRARY.codes()
     assert codes[0] == "E-01"
-    assert codes[-1] == "T-07"
+    assert codes[-1] == "U-02"

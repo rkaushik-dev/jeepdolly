@@ -43,6 +43,7 @@ from ..persistence.books import (
     carriers_from,
     enforcement_from,
     escorts_from,
+    lines_from,
     network_from,
     restrictions_from,
     structures_from,
@@ -118,6 +119,7 @@ def office_from(work: UnitOfWork, on: date | None = None) -> Office:
         turns=coded_corners(),
         escorts=escorts_from(session),
         enforcement=enforcement_from(session),
+        lines=lines_from(session),
         schedules=schedules_for(session),
         library=standard_library(),
         # The counter is the one in the database, inside this transaction, so

@@ -144,6 +144,8 @@ STANDARD_TEXTS = [
     ("R-04", Category.ROUTE, "Obey the posted clearance of {clearance} at {structure}.", 40),
     ("R-05", Category.ROUTE, "Stop traffic both ways to turn onto {segment} at {place}.", 50),
     ("R-06", Category.ROUTE, "The turn at {place} allows {allowed}. Walk it first.", 60),
+    ("U-01", Category.ROUTE, "Line lift at {place}. Ring {owner} on {telephone}.", 70),
+    ("U-02", Category.ROUTE, "Do not move until every line lift is confirmed.", 80),
     ("S-01", Category.STRUCTURE, "Cross {structure} alone with no other vehicle on it.", 10),
     ("S-02", Category.STRUCTURE, "Cross {structure} at walking pace.", 20),
     ("S-03", Category.STRUCTURE, "Cross {structure} centred on the roadway.", 30),

@@ -38,7 +38,7 @@ def test_the_office_carries_the_tables_that_are_not_in_the_database_yet(work):
     office = office_from(work, APRIL)
     assert len(office.commodities) == 17
     assert len(office.schedules) == 1
-    assert len(office.library) == 33
+    assert len(office.library) == 35
     assert office.numbering.issued_in(2025) == 0
 
 

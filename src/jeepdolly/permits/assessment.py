@@ -18,9 +18,13 @@ the office holds new permits until it starts again.
 Commodity next, because a divisible load is refused before anybody walks a
 route. Then the route, either the one written on the application or one
 the router finds. Then weight, which needs the route because the limits differ
-by class of road. Then classification, which needs both. Then the structures,
-the escorts, the marking, the travel limits, and last the price, because the
-price depends on the classification and the mileage.
+by class of road. Then classification, which needs both. Then the structures, the
+overhead lines, the escorts, the marking, the travel limits, and last the
+price, because the price depends on the classification and the mileage.
+
+The lines come after the structures because they are the same kind of finding
+read the other way up, and because a hauler who is going to be refused for a
+bridge would rather hear about the bridge and the wire in one letter.
 
 Three of the steps are named functions rather than paragraphs of this one,
 because they are the three somebody reads on their own: whether the carrier
@@ -61,6 +65,8 @@ from ..routing.select import Search, find
 from ..structures.analysis import Reading as StructureReading
 from ..structures.analysis import analyse_route
 from ..travel.windows import TravelLimits, limits_for
+from ..utilities.lines import Reading as LineReading
+from ..utilities.lines import under
 from .application import Application
 from .office import Office
 
@@ -80,6 +86,7 @@ class Assessment:
     weight: WeightReading | None = None
     route: RouteReading | None = None
     structures: StructureReading | None = None
+    lines: LineReading | None = None
     escorts: Escorts | None = None
     naming: Naming | None = None
     marking: Marking | None = None
@@ -196,6 +203,9 @@ def assess(office: Office, application: Application, day: date | None = None) ->
     for finding in structures.refusals:
         refusals.append(f"{finding.structure.name} will not take this load")
 
+    lines = under(itinerary, envelope, office.lines, application.filed, day)
+    refusals.extend(lines.refusals())
+
     superload = classification.kind is PermitKind.SUPERLOAD
     escorts = escorts_required(envelope, itinerary.classes(), superload=superload)
     naming = check_cards(office.escorts, application.escort_cards, escorts, day)
@@ -225,6 +235,7 @@ def assess(office: Office, application: Application, day: date | None = None) ->
             structures=structures,
             liftable_axles=stream.liftable_count(),
             naming=naming,
+            lines=lines,
         )
     elif not refusals:
         refusals.append("this load is legal and needs no permit")
@@ -237,6 +248,7 @@ def assess(office: Office, application: Application, day: date | None = None) ->
         weight=weight,
         route=route,
         structures=structures,
+        lines=lines,
         escorts=escorts,
         naming=naming,
         marking=marking,

@@ -24,6 +24,7 @@ from ..routing.turns import TurnBook
 from ..seasons import SeasonBook
 from ..structures.inventory import StructureBook
 from ..travelcalendar import PermitCalendar
+from ..utilities.lines import LineBook
 from .numbering import Numbering
 
 
@@ -42,6 +43,7 @@ class Office:
     turns: TurnBook
     escorts: EscortRegister
     enforcement: EnforcementBook
+    lines: LineBook
     schedules: ScheduleBook
     library: ConditionLibrary
     numbering: Numbering

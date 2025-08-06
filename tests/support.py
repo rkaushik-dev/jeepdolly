@@ -57,6 +57,7 @@ from jeepdolly.persistence.unitofwork import UnitOfWork
 from jeepdolly.routing.turns import coded_corners
 from jeepdolly.seasons import SeasonBook
 from jeepdolly.structures.inventory import Structure, StructureBook, StructureKind
+from jeepdolly.utilities.lines import Crossing, LineBook, Owner
 
 STEER = Axle(AxleKind.STEER, Pounds(12000), tires=2, tire_width=Inches(16))
 
@@ -209,6 +210,16 @@ def a_carrier_register():
     return register
 
 
+def a_line_book():
+    """Two wires on the test network, one liftable and one on steel towers."""
+    book = LineBook()
+    book.add_owner(Owner("CMP", "Central Maine Power", "207 555 0100", 5))
+    book.add_owner(Owner("TEL", "Somerset Telephone", "207 555 0177", 2))
+    book.add(Crossing("L-1", "US201-2", "Fairfield village", Inches.of(19), "CMP", Inches.of(26)))
+    book.add(Crossing("L-2", "I95-2", "Burnham line", Inches.of(24), "CMP"))
+    return book
+
+
 def an_escort_register():
     """One pilot car company with three cards, one of them run out."""
     register = EscortRegister()
@@ -228,7 +239,14 @@ def an_escort_register():
     return register
 
 
-def an_office(restrictions=None, seasons=None, turns=None, escorts=None, enforcement=None):
+def an_office(
+    restrictions=None,
+    seasons=None,
+    turns=None,
+    escorts=None,
+    enforcement=None,
+    lines=None,
+):
     """The whole office wired up against the test network."""
     return Office(
         network=road_log(),
@@ -242,6 +260,7 @@ def an_office(restrictions=None, seasons=None, turns=None, escorts=None, enforce
         turns=turns if turns is not None else coded_corners(),
         escorts=escorts if escorts is not None else an_escort_register(),
         enforcement=enforcement if enforcement is not None else EnforcementBook(),
+        lines=lines if lines is not None else a_line_book(),
         schedules=standard_schedules(),
         library=standard_library(),
         numbering=Numbering(),
