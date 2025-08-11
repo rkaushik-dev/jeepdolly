@@ -35,6 +35,7 @@ from .repositories import (
     CarrierRepository,
     CitationRepository,
     CommodityRepository,
+    LineRepository,
     NetworkRepository,
     PermitRepository,
     PilotRepository,
@@ -146,6 +147,10 @@ class UnitOfWork:
     @property
     def citations(self) -> CitationRepository:
         return CitationRepository(self._require())
+
+    @property
+    def lines(self) -> LineRepository:
+        return LineRepository(self._require())
 
     @property
     def pilots(self) -> PilotRepository:

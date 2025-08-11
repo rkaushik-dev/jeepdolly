@@ -72,7 +72,7 @@ def test_none_of_the_service_routes_needs_a_key(client):
 
 
 def test_every_router_is_registered_once(client):
-    assert len(ROUTERS) == 14
+    assert len(ROUTERS) == 15
     paths = {one.path for one in client.app.routes}
     assert "/health" in paths
     assert "/permits/walk-in" in paths
