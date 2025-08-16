@@ -1,36 +1,11 @@
 """The citation commands: the chase list and the quarterly letters."""
 
-import pytest
-from click.testing import CliRunner
-
 from jeepdolly.cli import citations as commands
-from jeepdolly.cli.main import Console, main
-from jeepdolly.config import Settings
-from support import a_seeded_database
+from support import call, shown
 
 # The import above registers the group. Without it this file passes in a whole
 # run and fails on its own.
 assert commands.citations.name == "citations"
-
-
-@pytest.fixture
-def factory():
-    return a_seeded_database()
-
-
-@pytest.fixture
-def console(factory):
-    made = Console(Settings(database_url="sqlite+pysqlite:///:memory:"))
-    made._factory = factory
-    return made
-
-
-def call(console, arguments):
-    return CliRunner().invoke(main, ["--quiet", *arguments], obj=console)
-
-
-def lines(answer):
-    return answer.output.splitlines()
 
 
 def file_one(console, number="E-25-0417", offence="overweight", written="2025-04-08", over="12000"):
@@ -87,7 +62,7 @@ def test_the_chase_list_prints_one_citation_to_a_line(console):
     file_one(console)
     answer = call(console, ["citations", "owing"])
     assert answer.exit_code == 0
-    assert lines(answer) == ["E-25-0417  2025-04-08  Bickford Heavy Haul  $580.00  written"]
+    assert shown(answer) == ["E-25-0417  2025-04-08  Bickford Heavy Haul  $580.00  written"]
 
 
 def test_an_empty_chase_list_says_so(console):
@@ -104,14 +79,14 @@ def test_paying_it_takes_it_off_the_chase_list(console):
 def test_everything_against_one_carrier_prints_newest_first(console):
     file_one(console, number="E-25-0100", written="2025-01-20")
     file_one(console)
-    printed = lines(call(console, ["citations", "carrier", "1204471"]))
+    printed = shown(call(console, ["citations", "carrier", "1204471"]))
     assert printed[0].startswith("E-25-0417")
     assert printed[1].startswith("E-25-0100")
 
 
 def test_one_citation_reads_out_in_full(console):
     file_one(console)
-    printed = lines(call(console, ["citations", "show", "E-25-0417"]))
+    printed = shown(call(console, ["citations", "show", "E-25-0417"]))
     assert printed[0] == "E-25-0417  2025-04-08  Bickford Heavy Haul (1204471)"
     assert printed[-1] == "  written"
 
@@ -124,7 +99,7 @@ def test_the_quarter_report_prints_the_counts_and_the_money(console):
     file_one(console)
     answer = call(console, ["citations", "report", "--from", "2025-01-01", "--to", "2025-12-31"])
     assert answer.exit_code == 0
-    printed = lines(answer)
+    printed = shown(answer)
     assert printed[0] == "enforcement 2025-01-01 to 2025-12-31"
     assert "overweight  1" in printed
     assert "assessed  $580.00" in printed
@@ -132,7 +107,7 @@ def test_the_quarter_report_prints_the_counts_and_the_money(console):
 
 def test_a_quiet_quarter_says_so(console):
     answer = call(console, ["citations", "report", "--from", "2025-01-01", "--to", "2025-12-31"])
-    assert lines(answer)[-1] == "nothing was written in that window"
+    assert shown(answer)[-1] == "nothing was written in that window"
 
 
 def test_the_letter_list_needs_two_before_it_names_anybody(console):
@@ -145,7 +120,7 @@ def test_two_citations_put_a_carrier_on_the_letter_list(console):
     file_one(console, number="E-25-0100", written="2025-01-20")
     file_one(console)
     answer = call(console, ["citations", "watch", "--from", "2025-01-01", "--to", "2025-12-31"])
-    assert lines(answer) == ["1204471  Bickford Heavy Haul  2  $1,740.00"]
+    assert shown(answer) == ["1204471  Bickford Heavy Haul  2  $1,740.00"]
 
 
 def test_the_line_can_be_drawn_at_one(console):
@@ -154,7 +129,7 @@ def test_the_line_can_be_drawn_at_one(console):
         console,
         ["citations", "watch", "--from", "2025-01-01", "--to", "2025-12-31", "--at", "1"],
     )
-    assert lines(answer) == ["1204471  Bickford Heavy Haul  1  $580.00"]
+    assert shown(answer) == ["1204471  Bickford Heavy Haul  1  $580.00"]
 
 
 def test_the_second_ticket_from_the_command_line_is_priced_as_a_repeat(console):

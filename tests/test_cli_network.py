@@ -2,14 +2,9 @@
 
 from pathlib import Path
 
-import pytest
-from click.testing import CliRunner
-
 from jeepdolly.cli import network as commands
-from jeepdolly.cli.main import Console, main
-from jeepdolly.config import Settings
 from jeepdolly.persistence.unitofwork import UnitOfWork
-from support import a_seeded_database
+from support import call
 
 # The import above is what registers the group on the main command. Without
 # it this file passes in a whole run and fails on its own, which is a bad
@@ -17,22 +12,6 @@ from support import a_seeded_database
 assert commands.roads.name == "roads"
 
 NEW_LINE = "US201-4|US 201|anson|solon|910|Somerset|Anson|4|0"
-
-
-@pytest.fixture
-def factory():
-    return a_seeded_database()
-
-
-@pytest.fixture
-def console(factory):
-    made = Console(Settings(database_url="sqlite+pysqlite:///:memory:"))
-    made._factory = factory
-    return made
-
-
-def call(console, arguments):
-    return CliRunner().invoke(main, ["--quiet", *arguments], obj=console)
 
 
 def written(tmp_path, lines):

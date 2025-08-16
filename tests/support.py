@@ -12,10 +12,12 @@ person can check a route by hand and big enough that the router has to work.
 
 from datetime import date
 
+from click.testing import CliRunner
 from fastapi.testclient import TestClient
 
 from jeepdolly.api.app import create_app
 from jeepdolly.api.security import HEADER, Role, issue_key
+from jeepdolly.cli.main import main
 from jeepdolly.conditions.library import standard_library
 from jeepdolly.domain.axle import Axle, AxleKind
 from jeepdolly.domain.carrier import Bond, Carrier, CarrierRegister, Insurance
@@ -369,6 +371,21 @@ def keys_for(factory):
             made[role] = key
         work.commit()
     return made
+
+
+def call(console, arguments):
+    """Run one command against a console, the way every cli test does.
+
+    Quiet is always passed. The log goes to stderr and the click runner mixes
+    the two streams, so a test that did not pass it would be asserting on log
+    lines it never meant to read.
+    """
+    return CliRunner().invoke(main, ["--quiet", *arguments], obj=console)
+
+
+def shown(answer):
+    """The lines a command printed, which is what the assertions are about."""
+    return answer.output.splitlines()
 
 
 def keyed_client(role=Role.SUPERVISOR, factory=None):

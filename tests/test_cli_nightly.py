@@ -4,15 +4,12 @@ import io
 from datetime import date
 
 import pytest
-from click.testing import CliRunner
 
 from jeepdolly import logs
 from jeepdolly.cli import nightly as commands
-from jeepdolly.cli.main import Console, main
-from jeepdolly.config import Settings
 from jeepdolly.permits.application import ApplicationState
 from jeepdolly.persistence.unitofwork import UnitOfWork
-from support import a_seeded_database, an_application
+from support import an_application, call
 
 # The import above registers the group. Without it this file passes in a
 # whole run, where some other test module imported it first, and fails on
@@ -24,18 +21,6 @@ LATER = "2025-04-20"
 
 
 @pytest.fixture
-def factory():
-    return a_seeded_database()
-
-
-@pytest.fixture
-def console(factory):
-    made = Console(Settings(database_url="sqlite+pysqlite:///:memory:"))
-    made._factory = factory
-    return made
-
-
-@pytest.fixture
 def stale(factory):
     when = date(2025, 4, 1)
     application = an_application(filed=when, start=when, end=when)
@@ -43,10 +28,6 @@ def stale(factory):
         work.applications.add(application)
         work.commit()
     return application
-
-
-def call(console, arguments):
-    return CliRunner().invoke(main, ["--quiet", *arguments], obj=console)
 
 
 def state_of(factory, reference="25-04471"):

@@ -1,36 +1,11 @@
 """The line commands: the van's list and the counter's question."""
 
-import pytest
-from click.testing import CliRunner
-
 from jeepdolly.cli import lines as commands
-from jeepdolly.cli.main import Console, main
-from jeepdolly.config import Settings
-from support import a_seeded_database
+from support import call, shown
 
 # The import above registers the group. Without it this file passes in a whole
 # run, where some other test module imported it first, and fails on its own.
 assert commands.wires.name == "wires"
-
-
-@pytest.fixture
-def factory():
-    return a_seeded_database()
-
-
-@pytest.fixture
-def console(factory):
-    made = Console(Settings(database_url="sqlite+pysqlite:///:memory:"))
-    made._factory = factory
-    return made
-
-
-def call(console, arguments):
-    return CliRunner().invoke(main, ["--quiet", *arguments], obj=console)
-
-
-def lines(answer):
-    return answer.output.splitlines()
 
 
 def owner(console, ident="CMP", notice=5):
@@ -89,13 +64,13 @@ def test_an_owner_can_be_filed_from_the_command_line(console):
 
 def test_the_owners_print_with_their_notice_and_their_wire_count(console):
     seeded(console)
-    printed = lines(call(console, ["wires", "owners"]))
+    printed = shown(call(console, ["wires", "owners"]))
     assert printed == ["CMP  Central Maine Power  207 555 0100  5 days  1"]
 
 
 def test_a_wire_can_be_filed_and_listed(console):
     seeded(console)
-    printed = lines(call(console, ["wires", "list"]))
+    printed = shown(call(console, ["wires", "list"]))
     assert printed == ["L-1  US201-2  Fairfield village  19 ft  26 ft  2024-09-12"]
 
 
@@ -123,14 +98,14 @@ def test_a_wire_against_an_owner_nobody_has_is_a_refusal(console):
 def test_the_wires_of_one_road_can_be_asked_for(console):
     seeded(console)
     wire(console, ident="L-2", segment="US2-1")
-    assert len(lines(call(console, ["wires", "list", "--segment", "US2-1"]))) == 1
-    assert len(lines(call(console, ["wires", "list"]))) == 2
+    assert len(shown(call(console, ["wires", "list", "--segment", "US2-1"]))) == 1
+    assert len(shown(call(console, ["wires", "list"]))) == 2
 
 
 def test_the_low_wires_can_be_asked_for_on_their_own(console):
     seeded(console)
     wire(console, ident="L-2", segment="US2-1", height="30'")
-    assert len(lines(call(console, ["wires", "list", "--under", "20'"]))) == 1
+    assert len(shown(call(console, ["wires", "list", "--under", "20'"]))) == 1
 
 
 def test_remeasuring_replaces_what_the_card_said(console):
@@ -147,14 +122,14 @@ def test_remeasuring_a_wire_nobody_has_is_a_refusal(console):
 def test_the_survey_list_names_the_low_wires_out_of_cycle(console):
     owner(console)
     wire(console, measured="2015-06-01")
-    printed = lines(call(console, ["wires", "survey", "--day", "2025-05-01"]))
+    printed = shown(call(console, ["wires", "survey", "--day", "2025-05-01"]))
     assert printed[0] == "line survey 2025-05-01, wires under 20 ft"
     assert printed[1].startswith("L-1  US201-2 at Fairfield village  19 ft  2015-06-01")
 
 
 def test_a_wire_walked_inside_the_cycle_is_not_on_the_list(console):
     seeded(console)
-    printed = lines(call(console, ["wires", "survey", "--day", "2025-05-01"]))
+    printed = shown(call(console, ["wires", "survey", "--day", "2025-05-01"]))
     assert printed[1] == "nothing low is out of cycle"
 
 
@@ -174,7 +149,7 @@ def test_the_fixed_wires_are_listed_under_their_own_heading(console):
 def test_a_tall_wire_out_of_cycle_is_left_off_the_low_list(console):
     owner(console)
     wire(console, height="30'", lift_to=None, measured="2015-06-01")
-    printed = lines(call(console, ["wires", "survey", "--day", "2025-05-01"]))
+    printed = shown(call(console, ["wires", "survey", "--day", "2025-05-01"]))
     assert printed[1] == "nothing low is out of cycle"
 
 

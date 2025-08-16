@@ -1,29 +1,14 @@
 """The permit commands, over a database with a permit in it."""
 
 import pytest
-from click.testing import CliRunner
 
 from jeepdolly.cli import permits as commands
-from jeepdolly.cli.main import Console, main
-from jeepdolly.config import Settings
 from jeepdolly.persistence.unitofwork import UnitOfWork
 from jeepdolly.services import audit
-from support import a_permit, a_seeded_database, an_application
+from support import a_permit, an_application, call
 
 FILED = "2025-04-07"
 START = "2025-04-08"
-
-
-@pytest.fixture
-def factory():
-    return a_seeded_database()
-
-
-@pytest.fixture
-def console(factory):
-    made = Console(Settings(database_url="sqlite+pysqlite:///:memory:"))
-    made._factory = factory
-    return made
 
 
 @pytest.fixture
@@ -35,10 +20,6 @@ def issued(factory):
         work.permits.add(a_permit(application))
         work.commit()
     return "25-P-004471"
-
-
-def call(console, arguments):
-    return CliRunner().invoke(main, ["--quiet", *arguments], obj=console)
 
 
 def test_the_group_is_registered_under_its_own_name(console):
