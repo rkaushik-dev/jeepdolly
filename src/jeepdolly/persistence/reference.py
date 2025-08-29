@@ -45,12 +45,16 @@ from datetime import date
 from sqlalchemy import event
 from sqlalchemy.orm import Session, sessionmaker
 
+from .. import logs
 from ..conditions.library import ConditionLibrary, standard_library
 from ..domain.commodity import CommodityBook
 from ..domain.network import Network
 from ..fees.schedule import ScheduleBook
+from ..fees.schedule import standard_book as coded_schedules
 from ..limits.size import SizeBook
+from ..limits.size import standard_book as coded_sizes
 from ..limits.statutory import StatutoryBook
+from ..limits.statutory import standard_book as coded_statutes
 from ..structures.inventory import StructureBook
 from ..utilities.lines import LineBook
 from .books import lines_from, network_from, structures_from
@@ -102,16 +106,55 @@ class Reference:
     lines: LineBook
 
 
+def statutes_for(session: Session) -> StatutoryBook:
+    """The statutory tables off the rows, or the coded ones on a bare database.
+
+    The fallback is not a convenience. A database that has not been seeded is
+    a database somebody is about to seed, and refusing every request until
+    they do would mean the office cannot answer a telephone call during an
+    install. It says so on the log, once per read, which is loud enough.
+    """
+    book = statutory_book(session)
+    if len(book):
+        return book
+    logs.trouble("tariff.unseeded", table="statutory_limits")
+    return coded_statutes()
+
+
+def sizes_for(session: Session, on: date) -> SizeBook:
+    """The size tables off the rows, or the coded ones on a bare database."""
+    book = size_book(session, on)
+    if len(book):
+        return book
+    logs.trouble("tariff.unseeded", table="size_limits")
+    return coded_sizes()
+
+
+def schedules_for(session: Session) -> ScheduleBook:
+    """The fee schedules off the rows, or the coded ones on a bare database."""
+    book = schedule_book(session)
+    if len(book):
+        return book
+    logs.trouble("tariff.unseeded", table="fee_schedules")
+    return coded_schedules()
+
+
 def read(session: Session, day: date) -> Reference:
-    """Build every published book off the rows, which is the slow path."""
+    """Build every published book off the rows, which is the slow path.
+
+    The unseeded fallbacks are here rather than in the dependency module they
+    came from. They belong with the reading: a command line report on a fresh
+    database wants the same behaviour as a request does, and it was getting a
+    different one.
+    """
     return Reference(
         day=day,
         network=network_from(session),
         structures=structures_from(session),
         commodities=CommodityRepository(session).book(day),
-        sizes=size_book(session, day),
-        statutes=statutory_book(session),
-        schedules=schedule_book(session),
+        sizes=sizes_for(session, day),
+        statutes=statutes_for(session),
+        schedules=schedules_for(session),
         library=standard_library(),
         lines=lines_from(session),
     )

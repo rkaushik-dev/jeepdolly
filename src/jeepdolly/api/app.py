@@ -18,6 +18,7 @@ from fastapi import FastAPI
 from sqlalchemy.orm import Session, sessionmaker
 
 from .. import __version__
+from ..persistence.reference import ReferenceCache, watch
 from . import errors, requestlog
 from .routers import (
     annual,
@@ -60,9 +61,17 @@ ROUTERS = (
 
 
 def create_app(factory: sessionmaker[Session]) -> FastAPI:
-    """Build an application over one session factory."""
+    """Build an application over one session factory.
+
+    The cache belongs to the application rather than to the module, so two
+    applications over two databases in one process do not share books. The
+    tests build one per test and that is the whole reason it is shaped this
+    way.
+    """
     app = FastAPI(title=TITLE, description=DESCRIPTION, version=__version__)
     app.state.sessions = factory
+    app.state.reference = ReferenceCache()
+    watch(factory, app.state.reference)
     errors.install(app)
     requestlog.install(app)
     for router in ROUTERS:

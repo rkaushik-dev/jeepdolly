@@ -6,13 +6,14 @@ from datetime import date
 import pytest
 
 from jeepdolly import logs
-from jeepdolly.api.deps import office_from, schedules_for, sizes_for, statutes_for
+from jeepdolly.api.deps import office_from
 from jeepdolly.domain.highway import HighwayClass
 from jeepdolly.limits.classify import PermitKind
 from jeepdolly.measure import Pounds
 from jeepdolly.money import Dollars
 from jeepdolly.persistence.base import create_all, memory_engine, session_factory
 from jeepdolly.persistence.models import StatutoryRow
+from jeepdolly.persistence.reference import schedules_for, sizes_for, statutes_for
 from jeepdolly.persistence.unitofwork import UnitOfWork
 from support import a_seeded_database
 
