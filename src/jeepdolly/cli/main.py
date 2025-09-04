@@ -121,6 +121,7 @@ def load_commands() -> None:
     """
     from . import (  # noqa: F401
         citations,
+        exports,
         lines,
         network,
         nightly,

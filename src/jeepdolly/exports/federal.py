@@ -39,6 +39,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ..errors import Unreadable
 from ..money import Dollars
 from ..permits.permit import PermitState
 from ..persistence.models.permits import PermitRow
@@ -217,4 +218,79 @@ def superseded_count(session: Session, start: date, end: date) -> int:
     """
     return len(
         [one for one in issued_between(session, start, end) if one.state is PermitState.SUPERSEDED]
+    )
+
+
+@dataclass(frozen=True)
+class Problem:
+    """One thing wrong with a file, named by the record it is in."""
+
+    record: int
+    trouble: str
+
+    def __str__(self) -> str:
+        return f"record {self.record}: {self.trouble}"
+
+
+def verify(lines: tuple[str, ...]) -> tuple[Problem, ...]:
+    """Read a written return back and find what the federal office would find.
+
+    This exists because the file is rejected in full and comes back three
+    weeks later. Everything it checks is something that has actually been
+    wrong at least once: a record of the wrong length after somebody edited
+    the file by hand, a trailer written before the last detail was added, and
+    a file assembled out of two months by a shell script.
+
+    It reads the file rather than the database on purpose. A verification that
+    asked the database again would agree with itself and prove nothing.
+    """
+    found: list[Problem] = []
+    if not lines:
+        return (Problem(0, "the file is empty"),)
+    for position, line in enumerate(lines, start=1):
+        if len(line) != WIDTH:
+            found.append(Problem(position, f"is {len(line)} columns and not {WIDTH}"))
+    if lines[0][0] != "H":
+        found.append(Problem(1, "is not a header"))
+    if lines[-1][0] != "T":
+        found.append(Problem(len(lines), "is not a trailer"))
+    body = lines[1:-1]
+    for position, line in enumerate(body, start=2):
+        if line[0] != "D":
+            found.append(Problem(position, "is not a detail record"))
+    if found:
+        return tuple(found)
+    found.extend(_totals(lines, body))
+    return tuple(found)
+
+
+def _totals(lines: tuple[str, ...], body: tuple[str, ...]) -> list[Problem]:
+    """Recompute the trailer the way the receiving system does."""
+    trailer = lines[-1]
+    last = len(lines)
+    found = []
+    count = int(trailer[1:8])
+    if count != len(body):
+        found.append(Problem(last, f"says {count} details and the file has {len(body)}"))
+    fees = sum(int(one[67:75]) for one in body)
+    if int(trailer[8:16]) != fees:
+        found.append(
+            Problem(last, f"says {int(trailer[8:16])} in fees and the details add to {fees}")
+        )
+    pounds = sum(int(one[55:62]) for one in body)
+    if int(trailer[16:28]) != pounds:
+        found.append(
+            Problem(last, f"says {int(trailer[16:28])} pounds and the details add to {pounds}")
+        )
+    return found
+
+
+def window_of(lines: tuple[str, ...]) -> tuple[date, date]:
+    """The window a file says it covers, read off its header."""
+    if not lines or lines[0][0] != "H":
+        raise Unreadable("this file has no header to read a window from")
+    head = lines[0]
+    return (
+        date.fromisoformat(f"{head[7:11]}-{head[11:13]}-{head[13:15]}"),
+        date.fromisoformat(f"{head[15:19]}-{head[19:21]}-{head[21:23]}"),
     )
