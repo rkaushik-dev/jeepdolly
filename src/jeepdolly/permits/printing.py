@@ -12,6 +12,11 @@ hauler has to be able to find condition four.
 The permit is printed from the permit record alone. It does not read the
 carrier table, the road log or the fee schedule, because the paper has to say
 what was decided on the day it was written, and everything else has moved on.
+
+A duplicate is the same sheet with a copy number on it. The copy number is
+passed in rather than read off the permit, because the permit does not know
+how many times it has been printed and should not: the reprint register knows,
+and it is a list beside the permit rather than a field on it.
 """
 
 from __future__ import annotations
@@ -59,14 +64,24 @@ def wrapped(text: str, indent: int = 4) -> tuple[str, ...]:
     return tuple(lines)
 
 
-def printed(permit: Permit) -> tuple[str, ...]:
-    """The whole sheet, as lines, ready for a line printer."""
+def printed(permit: Permit, copy: int = 1) -> tuple[str, ...]:
+    """The whole sheet, as lines, ready for a line printer.
+
+    A copy number above one puts a banner under the office name and another
+    across the foot. Two banners on one sheet is deliberate: the top one is
+    what a clerk sees on the pile and the bottom one is what survives when
+    somebody folds the sheet to put it behind a windscreen.
+    """
     if not permit.conditions:
         raise Impossible(f"{permit.number} has no conditions and cannot be printed")
     lines = [
         rule(),
         centred(OFFICE),
         centred("OVERSIZE AND OVERWEIGHT PERMIT"),
+    ]
+    if copy > 1:
+        lines.append(centred(f"*** DUPLICATE - COPY {copy} ***"))
+    lines += [
         rule(),
         two_up(f"PERMIT {permit.number}", f"ISSUED {permit.issued.isoformat()}"),
         two_up(
@@ -92,17 +107,20 @@ def printed(permit: Permit) -> tuple[str, ...]:
         lines.append(two_up(f"    {line.description}", str(line.amount)))
     lines.append(two_up("    TOTAL", str(permit.quote.total)))
     lines.append(rule())
+    if copy > 1:
+        lines.append(centred(f"*** DUPLICATE - COPY {copy} ***"))
+        lines.append(rule())
     if permit.state.value != "issued":
         lines.append(centred(f"*** {permit.state.value.upper()} ***"))
         lines.append(rule())
     return tuple(lines)
 
 
-def sheet(permit: Permit) -> str:
+def sheet(permit: Permit, copy: int = 1) -> str:
     """The printed permit as one piece of text."""
-    return "\n".join(printed(permit)) + "\n"
+    return "\n".join(printed(permit, copy)) + "\n"
 
 
-def widest(permit: Permit) -> int:
+def widest(permit: Permit, copy: int = 1) -> int:
     """The longest line, which has to fit the paper."""
-    return max(len(one) for one in printed(permit))
+    return max(len(one) for one in printed(permit, copy))
