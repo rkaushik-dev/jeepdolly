@@ -388,6 +388,24 @@ def shown(answer):
     return answer.output.splitlines()
 
 
+def clients_for(factory):
+    """One client per role over one database, every key live at once.
+
+    Two calls to ``keyed_client`` cannot be used together. Issuing a key
+    reissues the whole set and the first client's key stops working, which
+    made a test that used a clerk and a supervisor together fail in a way
+    that looked like a permission bug and was not.
+    """
+    keys = keys_for(factory)
+    app = create_app(factory)
+    made = {}
+    for role, key in keys.items():
+        client = TestClient(app)
+        client.headers[HEADER] = key
+        made[role] = client
+    return made
+
+
 def keyed_client(role=Role.SUPERVISOR, factory=None):
     """A client over a seeded database, signed in as one role."""
     factory = factory or a_seeded_database()

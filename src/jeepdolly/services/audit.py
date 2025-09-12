@@ -33,6 +33,7 @@ ACTIONS = frozenset(
         "application.pilots_named",
         "permit.issued",
         "permit.voided",
+        "permit.reprinted",
         "permit.amended",
         "review.opened",
         "review.assigned",

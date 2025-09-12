@@ -20,6 +20,7 @@ from .network import NodeRow, RestrictionRow, SegmentRow
 from .permits import CounterRow, FeeLineRow, PermitConditionRow, PermitRow
 from .receipts import ReceiptRow
 from .reference import CommodityRow, ConditionTextRow
+from .reprints import ReprintRow
 from .seasons import SeasonOrderRow
 from .structures import ReviewMoveRow, ReviewRow, StructureRow
 from .tariff import (
@@ -57,6 +58,7 @@ __all__ = [
     "PilotCompanyRow",
     "PermitRow",
     "ReceiptRow",
+    "ReprintRow",
     "RestrictionRow",
     "ReviewMoveRow",
     "ReviewRow",

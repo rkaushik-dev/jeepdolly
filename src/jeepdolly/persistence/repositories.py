@@ -32,6 +32,7 @@ from ..escorts.register import Company, Operator
 from ..measure import Inches
 from ..permits.application import Application, ApplicationState
 from ..permits.permit import Permit, PermitState
+from ..permits.reprint import Reprint
 from ..utilities.lines import Crossing, Owner
 from .mappers import application_to_row, permit_to_row, row_to_application, row_to_permit
 from .models.applications import ApplicationRow
@@ -41,6 +42,7 @@ from .models.escorts import PilotCardRow, PilotCompanyRow
 from .models.network import RestrictionRow, SegmentRow
 from .models.permits import PermitRow
 from .models.reference import CommodityRow
+from .models.reprints import ReprintRow
 from .models.structures import StructureRow
 from .models.utilities import LineCrossingRow, LineOwnerRow
 
@@ -342,6 +344,50 @@ class LineRepository:
 
     def count(self) -> int:
         return len(self.session.scalars(select(LineCrossingRow)).all())
+
+
+class ReprintRepository:
+    """The reprint register, which is a list beside each permit."""
+
+    def __init__(self, session: Session) -> None:
+        self.session = session
+
+    def for_permit(self, number: str) -> tuple[ReprintRow, ...]:
+        query = select(ReprintRow).where(ReprintRow.permit == number).order_by(ReprintRow.copy)
+        return tuple(self.session.scalars(query).all())
+
+    def copies_taken(self, number: str) -> tuple[int, ...]:
+        """Every copy number ever issued for a permit, for the next one."""
+        return tuple(one.copy for one in self.for_permit(number))
+
+    def add(self, reprint: Reprint) -> ReprintRow:
+        """Record a copy, refusing a number that has already been handed out.
+
+        The database would refuse it too, on the composite key. This says
+        conflict first so that two clerks racing each other get a sentence
+        rather than an integrity error.
+        """
+        if self.session.get(ReprintRow, (reprint.permit, reprint.copy)) is not None:
+            raise Conflict(
+                f"copy {reprint.copy} of {reprint.permit} has already been printed",
+                permit=reprint.permit,
+                copy=reprint.copy,
+            )
+        row = ReprintRow.of(reprint)
+        self.session.add(row)
+        return row
+
+    def between(self, start: date, end: date) -> tuple[ReprintRow, ...]:
+        """Every copy issued in a window, which is the yearly question."""
+        query = (
+            select(ReprintRow)
+            .where(ReprintRow.issued_on >= start, ReprintRow.issued_on <= end)
+            .order_by(ReprintRow.issued_on, ReprintRow.permit, ReprintRow.copy)
+        )
+        return tuple(self.session.scalars(query).all())
+
+    def count(self) -> int:
+        return len(self.session.scalars(select(ReprintRow)).all())
 
 
 class CommodityRepository:
