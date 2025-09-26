@@ -34,6 +34,7 @@ ACTIONS = frozenset(
         "permit.issued",
         "permit.voided",
         "permit.reprinted",
+        "permit.renewed",
         "permit.amended",
         "review.opened",
         "review.assigned",
