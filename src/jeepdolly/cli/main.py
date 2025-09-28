@@ -127,6 +127,7 @@ def load_commands() -> None:
         nightly,
         permits,
         pilots,
+        renewals,
         reports,
     )
 
