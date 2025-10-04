@@ -15,10 +15,9 @@ The walk in route is the one the counter screen actually uses. A hauler at the
 window with a load on the truck gets a permit or a reason in one request, and
 the office does not want a half filed application left behind either way.
 
-Reprinting is here rather than in a register of its own because a copy is a
-permit route: the caller wants the sheet back, not a receipt for having asked
-for it. The copy number and the sheet come back together so the clerk can put
-one on the printer and the other in the file.
+Reprinting used to be here and is not. A copy decides nothing and touches no
+record, and keeping it here dragged the printer and the reprint rules into a
+file about issuing.
 """
 
 from __future__ import annotations
@@ -26,16 +25,13 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, Field
 
 from ... import logs
-from ...errors import NotAllowed, Unreadable
+from ...errors import NotAllowed
 from ...permits.permit import Permit
-from ...permits.printing import sheet
-from ...permits.reprint import FREELY, Reason, Reprint, reprint
 from ...persistence.models.permits import PermitRow
 from ...persistence.unitofwork import UnitOfWork
-from ...services import audit, counter
+from ...services import counter
 from ..deps import office_from, unit_of_work
 from ..schemas import ApplicationIn, PermitOut
 from ..security import Caller, Role, needs
@@ -155,127 +151,3 @@ def permits_for_carrier(
 ) -> list[PermitOut]:
     """What one carrier has out, newest first."""
     return _shape(work, work.permits.for_carrier(usdot))
-
-
-class ReprintIn(BaseModel):
-    """What the counter is told when somebody asks for another copy."""
-
-    reason: str
-    asked_by: str
-    note: str = Field(default="", max_length=500)
-
-    def kind(self) -> Reason:
-        try:
-            return Reason(self.reason)
-        except ValueError:
-            raise Unreadable(
-                f"{self.reason!r} is not a reason this office records",
-                reason=self.reason,
-            ) from None
-
-
-class ReprintOut(BaseModel):
-    """The copy, and the sheet to put on the printer."""
-
-    permit: str
-    # Called copy_number rather than copy because pydantic's own copy method
-    # is on every model and a field of that name shadows it. The register and
-    # the printed banner both say copy.
-    copy_number: int
-    issued_on: date
-    reason: str
-    asked_by: str
-    issued_by: str
-    needed_a_supervisor: bool
-    sheet: str
-
-    @classmethod
-    def of(cls, made: Reprint, written: str) -> ReprintOut:
-        return cls(
-            permit=made.permit,
-            copy_number=made.copy,
-            issued_on=made.on,
-            reason=made.reason.value,
-            asked_by=made.asked_by,
-            issued_by=made.issued_by,
-            needed_a_supervisor=made.needed_a_supervisor,
-            sheet=written,
-        )
-
-
-class CopyOut(BaseModel):
-    """One line of the register beside a permit."""
-
-    copy_number: int
-    issued_on: date
-    reason: str
-    asked_by: str
-    issued_by: str
-    note: str
-
-
-@router.post("/{number}/copies", response_model=ReprintOut, status_code=201)
-def reprint_permit(
-    number: str,
-    body: ReprintIn,
-    on: date | None = Query(default=None),
-    work: UnitOfWork = Depends(unit_of_work),
-    who: Caller = Depends(needs(Role.CLERK)),
-) -> ReprintOut:
-    """Print another copy, numbered, with the reason on the register.
-
-    A clerk may print up to the free threshold. Past it the route refuses and
-    the same request from a supervisor goes through, which is the rung of the
-    ladder doing the work rather than a flag on the body.
-    """
-    day = on or date.today()
-    permit = work.permits.get(number)
-    made = reprint(
-        permit,
-        day,
-        body.kind(),
-        body.asked_by,
-        who.person,
-        taken=work.reprints.copies_taken(number),
-        supervisor=who.role is Role.SUPERVISOR,
-        note=body.note,
-    )
-    work.reprints.add(made)
-    audit.record(
-        work.db,
-        "permit.reprinted",
-        who.person,
-        "permit",
-        number,
-        detail=f"copy {made.copy}, {made.reason}",
-    )
-    work.commit()
-    logs.event("permit.reprinted", number=number, copy=made.copy)
-    return ReprintOut.of(made, sheet(permit, made.copy))
-
-
-@router.get("/{number}/copies", response_model=list[CopyOut])
-def copies_of(
-    number: str,
-    work: UnitOfWork = Depends(unit_of_work),
-    who: Caller = Depends(needs(Role.READER)),
-) -> list[CopyOut]:
-    """Every copy of a permit the office has handed out."""
-    work.permits.row(number)
-    return [
-        CopyOut(
-            copy_number=one.copy,
-            issued_on=one.issued_on,
-            reason=one.reason.value,
-            asked_by=one.asked_by,
-            issued_by=one.issued_by,
-            note=one.note or "",
-        )
-        for one in work.reprints.for_permit(number)
-    ]
-
-
-@router.get("/copies/free-limit")
-def free_limit(who: Caller = Depends(needs(Role.READER))) -> dict[str, int]:
-    """How many copies a clerk may print before a supervisor is wanted."""
-    return {"freely": FREELY}
