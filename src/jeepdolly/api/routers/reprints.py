@@ -22,12 +22,13 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
 from ... import logs
+from ...config import OfficeRules
 from ...errors import Unreadable
 from ...permits.printing import sheet
-from ...permits.reprint import FREELY, Reason, Reprint, reprint
+from ...permits.reprint import Reason, Reprint, reprint
 from ...persistence.unitofwork import UnitOfWork
 from ...services import audit
-from ..deps import unit_of_work
+from ..deps import rules, unit_of_work
 from ..security import Caller, Role, needs
 
 router = APIRouter(prefix="/permits", tags=["reprints"])
@@ -66,7 +67,7 @@ class ReprintOut(BaseModel):
     sheet: str
 
     @classmethod
-    def of(cls, made: Reprint, written: str) -> ReprintOut:
+    def of(cls, made: Reprint, written: str, freely: int) -> ReprintOut:
         return cls(
             permit=made.permit,
             copy_number=made.copy,
@@ -74,7 +75,7 @@ class ReprintOut(BaseModel):
             reason=made.reason.value,
             asked_by=made.asked_by,
             issued_by=made.issued_by,
-            needed_a_supervisor=made.needed_a_supervisor,
+            needed_a_supervisor=made.needed_a_supervisor(freely),
             sheet=written,
         )
 
@@ -96,6 +97,7 @@ def reprint_permit(
     body: ReprintIn,
     on: date | None = Query(default=None),
     work: UnitOfWork = Depends(unit_of_work),
+    limits: OfficeRules = Depends(rules),
     who: Caller = Depends(needs(Role.CLERK)),
 ) -> ReprintOut:
     """Print another copy, numbered, with the reason on the register.
@@ -114,6 +116,7 @@ def reprint_permit(
         who.person,
         taken=work.reprints.copies_taken(number),
         supervisor=who.role is Role.SUPERVISOR,
+        freely=limits.free_copies,
         note=body.note,
     )
     work.reprints.add(made)
@@ -127,7 +130,7 @@ def reprint_permit(
     )
     work.commit()
     logs.event("permit.reprinted", number=number, copy=made.copy)
-    return ReprintOut.of(made, sheet(permit, made.copy))
+    return ReprintOut.of(made, sheet(permit, made.copy), limits.free_copies)
 
 
 @router.get("/{number}/copies", response_model=list[CopyOut])
@@ -152,6 +155,9 @@ def copies_of(
 
 
 @router.get("/copies/free-limit")
-def free_limit(who: Caller = Depends(needs(Role.READER))) -> dict[str, int]:
+def free_limit(
+    limits: OfficeRules = Depends(rules),
+    who: Caller = Depends(needs(Role.READER)),
+) -> dict[str, int]:
     """How many copies a clerk may print before a supervisor is wanted."""
-    return {"freely": FREELY}
+    return {"freely": limits.free_copies}

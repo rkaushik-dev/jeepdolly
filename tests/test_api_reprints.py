@@ -233,3 +233,20 @@ class TestTheStore:
         work.db.flush()
         row = work.db.get(ReprintRow, (NUMBER, 2))
         assert repr(row) == "<ReprintRow 25-P-004471 copy 2>"
+
+
+def test_an_office_that_allows_more_copies_lets_a_clerk_print_them(issued):
+    from starlette.testclient import TestClient
+
+    from jeepdolly.api.app import create_app
+    from jeepdolly.api.security import HEADER
+    from jeepdolly.config import OfficeRules, Settings
+    from support import keys_for
+
+    app = create_app(issued, Settings(rules=OfficeRules(free_copies=5)))
+    client = TestClient(app)
+    client.headers[HEADER] = keys_for(issued)[Role.CLERK]
+    assert client.get("/permits/copies/free-limit").json() == {"freely": 5}
+    for _ in range(4):
+        assert ask(client).status_code == 201
+    assert ask(client).status_code == 409

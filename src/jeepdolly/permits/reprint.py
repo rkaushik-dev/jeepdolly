@@ -76,9 +76,14 @@ class Reprint:
         if self.reason.wants_words and not self.note.strip():
             raise Impossible("a reprint for another reason says what the reason was")
 
-    @property
-    def needed_a_supervisor(self) -> bool:
-        return self.copy > FREELY
+    def needed_a_supervisor(self, freely: int = FREELY) -> bool:
+        """Whether this copy wanted a signature, at the limit in force.
+
+        Takes the limit rather than reading the constant, because the answer
+        is a fact about the day it was printed and a site that changed the
+        limit last month must not change what an old record says.
+        """
+        return self.copy > freely
 
     def banner(self) -> str:
         """What goes across the face of the paper."""
@@ -100,7 +105,13 @@ def next_copy(taken: tuple[int, ...]) -> int:
     return max(taken, default=1) + 1
 
 
-def allowed(permit: Permit, on: date, copy: int, supervisor: bool) -> None:
+def allowed(
+    permit: Permit,
+    on: date,
+    copy: int,
+    supervisor: bool,
+    freely: int = FREELY,
+) -> None:
     """Whether this copy may be printed at all, raising if it may not.
 
     A void permit is refused because there is nothing to be on the road with.
@@ -115,7 +126,7 @@ def allowed(permit: Permit, on: date, copy: int, supervisor: bool) -> None:
         raise NotAllowed(
             f"{permit.number} expired on {permit.end.isoformat()} and cannot be copied"
         )
-    if copy > FREELY and not supervisor:
+    if copy > freely and not supervisor:
         raise NotAllowed(
             f"copy {copy} of {permit.number} wants a supervisor",
             permit=str(permit.number),
@@ -132,10 +143,11 @@ def reprint(
     taken: tuple[int, ...] = (),
     supervisor: bool = False,
     note: str = "",
+    freely: int = FREELY,
 ) -> Reprint:
     """Work out the copy number, check it may be printed, and record it."""
     copy = next_copy(taken)
-    allowed(permit, on, copy, supervisor)
+    allowed(permit, on, copy, supervisor, freely)
     return Reprint(
         permit=str(permit.number),
         copy=copy,

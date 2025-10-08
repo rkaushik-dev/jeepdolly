@@ -27,6 +27,7 @@ from datetime import date
 from fastapi import Depends, Request
 from sqlalchemy.orm import Session, sessionmaker
 
+from ..config import OfficeRules, Settings
 from ..permits.numbering import Numbering
 from ..permits.office import Office
 from ..persistence.books import (
@@ -93,6 +94,18 @@ def office_from(
         # a number taken and not committed is handed out again.
         numbering=Numbering(work.counter),
     )
+
+
+def rules(request: Request) -> OfficeRules:
+    """The office rules this application was built with.
+
+    An application built before the settings were on the state gets the
+    defaults rather than an attribute error. That happens in exactly one
+    place, which is a test that deletes the state to prove the fallback
+    works, and it costs one line to be safe about it.
+    """
+    settings: Settings | None = getattr(request.app.state, "settings", None)
+    return settings.rules if settings is not None else OfficeRules()
 
 
 def reference_cache(request: Request) -> ReferenceCache | None:

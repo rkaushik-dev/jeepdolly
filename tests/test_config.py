@@ -6,6 +6,7 @@ from jeepdolly.config import (
     DEFAULT_MINIMUM_MILES,
     DEFAULT_URL,
     PREFIX,
+    OfficeRules,
     Settings,
     from_environment,
 )
@@ -85,3 +86,68 @@ def test_an_in_memory_database_says_so_because_it_changes_what_starts_up():
 def test_the_settings_print_the_office_and_the_database_it_is_on():
     settings = Settings(office_name="Motor Carrier Permit Office")
     assert str(settings).startswith("Motor Carrier Permit Office on sqlite")
+
+
+def test_the_office_rules_default_to_the_constants_that_own_them():
+    from jeepdolly.enforcement.standing import GRACE_DAYS
+    from jeepdolly.permits.reprint import FREELY
+    from jeepdolly.reports.lines import CYCLE_YEARS
+    from jeepdolly.services.renewals import AHEAD_DAYS
+
+    rules = OfficeRules()
+    assert rules.free_copies == FREELY
+    assert rules.renewal_days == AHEAD_DAYS
+    assert rules.citation_grace == GRACE_DAYS
+    assert rules.line_survey_years == CYCLE_YEARS
+
+
+def test_a_settings_object_carries_the_rules_without_being_told():
+    assert Settings().rules == OfficeRules()
+
+
+def test_an_office_that_prints_no_copies_freely_is_refused():
+    with pytest.raises(Impossible):
+        OfficeRules(free_copies=0)
+
+
+def test_a_renewal_window_of_no_days_is_refused():
+    with pytest.raises(Impossible):
+        OfficeRules(renewal_days=0)
+
+
+def test_a_negative_grace_is_refused():
+    with pytest.raises(Impossible):
+        OfficeRules(citation_grace=-1)
+
+
+def test_a_survey_cycle_of_no_years_is_refused():
+    with pytest.raises(Impossible):
+        OfficeRules(line_survey_years=0)
+
+
+def test_a_grace_of_no_days_is_allowed_because_some_states_have_none():
+    assert OfficeRules(citation_grace=0).citation_grace == 0
+
+
+def test_the_rules_print_for_the_settings_page():
+    printed = OfficeRules(free_copies=5).lines()
+    assert printed[0] == "free copies       5"
+    assert len(printed) == 4
+
+
+def test_the_rules_say_the_short_form_too():
+    assert str(OfficeRules()) == "3 copies, 30 day renewal window"
+
+
+def test_the_rules_come_off_the_environment(monkeypatch):
+    monkeypatch.setenv("JEEPDOLLY_FREE_COPIES", "5")
+    monkeypatch.setenv("JEEPDOLLY_CITATION_GRACE", "14")
+    found = from_environment().rules
+    assert found.free_copies == 5
+    assert found.citation_grace == 14
+
+
+def test_a_rule_that_is_not_a_number_is_refused(monkeypatch):
+    monkeypatch.setenv("JEEPDOLLY_FREE_COPIES", "several")
+    with pytest.raises(Impossible):
+        from_environment()

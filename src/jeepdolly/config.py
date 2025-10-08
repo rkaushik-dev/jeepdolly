@@ -13,15 +13,30 @@ the office name are business defaults and they match the published schedule.
 Nothing here is a secret. When there is a password it will arrive as a whole
 database url from the environment and it will not be logged, which is why the
 url has its own accessor that redacts it for the log line.
+
+The office rules are the second block and they are a different kind of thing.
+They are numbers the office itself changes: how many copies a clerk may print,
+how far ahead the renewal run looks, how long a carrier has before an unpaid
+citation holds them. Every one of them has a default in the module that owns
+the rule, and this is how a site overrides one without a deployment.
+
+They are read here rather than from the modules for the reason at the top: a
+rule that read its own environment variable would behave differently in a test
+than in a request, and the whole point of these numbers is that somebody can
+change one and see what happens.
 """
 
 from __future__ import annotations
 
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
+from .enforcement.standing import GRACE_DAYS as ENFORCEMENT_GRACE
 from .errors import Impossible
+from .permits.reprint import FREELY as REPRINT_FREELY
+from .reports.lines import CYCLE_YEARS as SURVEY_CYCLE
+from .services.renewals import AHEAD_DAYS as RENEWAL_AHEAD
 
 PREFIX = "JEEPDOLLY_"
 
@@ -34,6 +49,43 @@ _PASSWORD = re.compile(r"//([^:/@]+):([^@]+)@")
 
 
 @dataclass(frozen=True)
+class OfficeRules:
+    """The numbers the office changes without shipping anything.
+
+    Each one defaults to the constant in the module that owns the rule, so a
+    site that sets nothing behaves exactly as the code reads. Nothing here
+    changes what a rule means, only where the line is drawn.
+    """
+
+    free_copies: int = REPRINT_FREELY
+    renewal_days: int = RENEWAL_AHEAD
+    citation_grace: int = ENFORCEMENT_GRACE
+    line_survey_years: int = SURVEY_CYCLE
+
+    def __post_init__(self) -> None:
+        if self.free_copies < 1:
+            raise Impossible("an office prints at least one copy without a signature")
+        if self.renewal_days < 1:
+            raise Impossible("a renewal run looks at least a day ahead")
+        if self.citation_grace < 0:
+            raise Impossible("a grace period is not negative")
+        if self.line_survey_years < 1:
+            raise Impossible("a survey cycle is at least a year")
+
+    def lines(self) -> tuple[str, ...]:
+        """The rules as they print on the settings page."""
+        return (
+            f"free copies       {self.free_copies}",
+            f"renewal window    {self.renewal_days} days",
+            f"citation grace    {self.citation_grace} days",
+            f"line survey       {self.line_survey_years} years",
+        )
+
+    def __str__(self) -> str:
+        return f"{self.free_copies} copies, {self.renewal_days} day renewal window"
+
+
+@dataclass(frozen=True)
 class Settings:
     """Everything the service is allowed to be told."""
 
@@ -42,6 +94,7 @@ class Settings:
     minimum_miles: int = DEFAULT_MINIMUM_MILES
     review_days: int = DEFAULT_REVIEW_DAYS
     echo_sql: bool = False
+    rules: OfficeRules = field(default_factory=OfficeRules)
 
     def __post_init__(self) -> None:
         if not self.database_url.strip():
@@ -92,4 +145,10 @@ def from_environment() -> Settings:
         minimum_miles=_read_int("MINIMUM_MILES", DEFAULT_MINIMUM_MILES),
         review_days=_read_int("REVIEW_DAYS", DEFAULT_REVIEW_DAYS),
         echo_sql=_read_flag("ECHO_SQL", False),
+        rules=OfficeRules(
+            free_copies=_read_int("FREE_COPIES", REPRINT_FREELY),
+            renewal_days=_read_int("RENEWAL_DAYS", RENEWAL_AHEAD),
+            citation_grace=_read_int("CITATION_GRACE", ENFORCEMENT_GRACE),
+            line_survey_years=_read_int("LINE_SURVEY_YEARS", SURVEY_CYCLE),
+        ),
     )

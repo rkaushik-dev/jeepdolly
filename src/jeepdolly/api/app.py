@@ -18,6 +18,7 @@ from fastapi import FastAPI
 from sqlalchemy.orm import Session, sessionmaker
 
 from .. import __version__
+from ..config import Settings, from_environment
 from ..persistence.reference import ReferenceCache, watch
 from . import errors, requestlog
 from .routers import (
@@ -64,16 +65,25 @@ ROUTERS = (
 )
 
 
-def create_app(factory: sessionmaker[Session]) -> FastAPI:
+def create_app(
+    factory: sessionmaker[Session],
+    settings: Settings | None = None,
+) -> FastAPI:
     """Build an application over one session factory.
 
     The cache belongs to the application rather than to the module, so two
     applications over two databases in one process do not share books. The
     tests build one per test and that is the whole reason it is shaped this
     way.
+
+    The settings come the same way. A caller that passes none gets the
+    environment, which is what the entry point does, and a test that wants a
+    different free copy limit passes one rather than setting a variable and
+    hoping nothing else in the run reads it.
     """
     app = FastAPI(title=TITLE, description=DESCRIPTION, version=__version__)
     app.state.sessions = factory
+    app.state.settings = settings or from_environment()
     app.state.reference = ReferenceCache()
     watch(factory, app.state.reference)
     errors.install(app)

@@ -71,11 +71,11 @@ def test_the_banner_says_which_copy_it_is():
 
 
 def test_a_copy_inside_the_threshold_wants_no_supervisor():
-    assert not a_reprint(copy=FREELY).needed_a_supervisor
+    assert not a_reprint(copy=FREELY).needed_a_supervisor()
 
 
 def test_a_copy_past_it_does():
-    assert a_reprint(copy=FREELY + 1).needed_a_supervisor
+    assert a_reprint(copy=FREELY + 1).needed_a_supervisor()
 
 
 def test_the_first_reprint_is_copy_two():
@@ -124,7 +124,7 @@ def test_reprinting_works_out_the_copy_number_and_records_it():
 def test_reprinting_a_permit_that_already_has_copies_carries_on_the_sequence():
     found = reprint(permit(), INSIDE, Reason.LOST, "D Bickford", "M Cyr", taken=(2,))
     assert found.copy == 3
-    assert not found.needed_a_supervisor
+    assert not found.needed_a_supervisor()
 
 
 def test_reprinting_past_the_threshold_without_a_supervisor_is_refused():
@@ -137,7 +137,7 @@ def test_reprinting_past_it_with_one_is_allowed():
         permit(), INSIDE, Reason.LOST, "D Bickford", "M Cyr", taken=(2, 3, 4), supervisor=True
     )
     assert found.copy == 5
-    assert found.needed_a_supervisor
+    assert found.needed_a_supervisor()
 
 
 def test_a_reprint_never_touches_the_permit():
