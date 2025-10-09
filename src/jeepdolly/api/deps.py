@@ -59,6 +59,7 @@ def office_from(
     work: UnitOfWork,
     on: date | None = None,
     cache: ReferenceCache | None = None,
+    limits: OfficeRules | None = None,
 ) -> Office:
     """Assemble the office from what is on file today.
 
@@ -72,6 +73,7 @@ def office_from(
     if session is None:  # pragma: no cover - guarded by the unit of work
         raise RuntimeError("the unit of work is closed")
     day = on or date.today()
+    rules_in_force = limits or OfficeRules()
     published = cache.books(session, day) if cache is not None else read_reference(session, day)
     return Office(
         network=published.network,
@@ -86,7 +88,7 @@ def office_from(
         # perhaps twice a year and nobody has asked to edit it on a screen.
         turns=coded_corners(),
         escorts=escorts_from(session),
-        enforcement=enforcement_from(session),
+        enforcement=enforcement_from(session, rules_in_force.citation_grace),
         lines=published.lines,
         schedules=published.schedules,
         library=published.library,
@@ -117,6 +119,7 @@ def reference_cache(request: Request) -> ReferenceCache | None:
 def office(
     work: UnitOfWork = Depends(unit_of_work),
     cache: ReferenceCache | None = Depends(reference_cache),
+    limits: OfficeRules = Depends(rules),
 ) -> Office:
     """The office, for a route that needs to decide something."""
-    return office_from(work, cache=cache)
+    return office_from(work, cache=cache, limits=limits)

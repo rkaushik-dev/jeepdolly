@@ -26,7 +26,7 @@ from ..domain.carrier import CarrierRegister
 from ..domain.network import Network, Node
 from ..domain.restriction import Curfew, Restriction, RestrictionBook
 from ..enforcement.citation import CONTEST_DAYS, CitationState
-from ..enforcement.standing import Account, EnforcementBook, Owed, due_day
+from ..enforcement.standing import GRACE_DAYS, Account, EnforcementBook, Owed, due_day
 from ..escorts.register import EscortRegister
 from ..structures.inventory import StructureBook
 from ..utilities.lines import LineBook
@@ -121,12 +121,16 @@ def escorts_from(session: Session) -> EscortRegister:
     return register
 
 
-def enforcement_from(session: Session) -> EnforcementBook:
+def enforcement_from(session: Session, grace: int = GRACE_DAYS) -> EnforcementBook:
     """What every carrier owes, grouped, with the day each one falls due.
 
     Only citations still expecting money are read. A paid one is settled, and
     a dismissed or voided one was never owed, so neither belongs in an account
     that exists to answer one question: is this carrier holding up the office.
+
+    The grace is passed rather than read, because it is an office rule and a
+    site that gives carriers a fortnight rather than a month sets it once in
+    the settings and every account is built with it.
     """
     owed: dict[int, list[Owed]] = {}
     for row in session.query(CitationRow).all():
@@ -137,7 +141,7 @@ def enforcement_from(session: Session) -> EnforcementBook:
                 number=row.number,
                 written=row.written,
                 amount=row.amount,
-                due=due_day(row.written, CONTEST_DAYS),
+                due=due_day(row.written, CONTEST_DAYS, grace),
                 contested=row.state is CitationState.CONTESTED,
             )
         )

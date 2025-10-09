@@ -18,11 +18,11 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
+from ...config import OfficeRules
 from ...persistence.reference import ReferenceCache
 from ...persistence.unitofwork import UnitOfWork
 from ...services import renewals
-from ...services.renewals import AHEAD_DAYS
-from ..deps import office_from, reference_cache, unit_of_work
+from ..deps import office_from, reference_cache, rules, unit_of_work
 from ..schemas import PermitOut
 from ..security import Caller, Role, needs
 
@@ -67,12 +67,19 @@ class RenewedOut(BaseModel):
 @router.get("", response_model=list[DueOut])
 def due(
     on: date | None = Query(default=None),
-    within: int = Query(default=AHEAD_DAYS, ge=0, le=365),
+    within: int | None = Query(default=None, ge=0, le=365),
     work: UnitOfWork = Depends(unit_of_work),
+    limits: OfficeRules = Depends(rules),
     who: Caller = Depends(needs(Role.READER)),
 ) -> list[DueOut]:
-    """Every live annual running out inside the window, soonest first."""
+    """Every live annual running out inside the window, soonest first.
+
+    The window defaults to the office rule rather than to the constant, so a
+    site that works six weeks ahead sets it once and both this and the letters
+    follow.
+    """
     day = on or date.today()
+    within = limits.renewal_days if within is None else within
     return [
         DueOut(
             number=one.number,
@@ -88,12 +95,14 @@ def due(
 @router.get("/letters", response_model=list[LetterOut])
 def letters(
     on: date | None = Query(default=None),
-    within: int = Query(default=AHEAD_DAYS, ge=0, le=365),
+    within: int | None = Query(default=None, ge=0, le=365),
     work: UnitOfWork = Depends(unit_of_work),
+    limits: OfficeRules = Depends(rules),
     who: Caller = Depends(needs(Role.READER)),
 ) -> list[LetterOut]:
     """One letter per carrier, which is what goes in the mail merge."""
     day = on or date.today()
+    within = limits.renewal_days if within is None else within
     return [
         LetterOut(
             usdot=one.usdot,
@@ -114,11 +123,12 @@ def renew(
     on: date | None = Query(default=None),
     work: UnitOfWork = Depends(unit_of_work),
     cache: ReferenceCache | None = Depends(reference_cache),
+    limits: OfficeRules = Depends(rules),
     who: Caller = Depends(needs(Role.CLERK)),
 ) -> RenewedOut:
     """Renew a carrier's annuals in one transaction, or none of them."""
     day = on or date.today()
-    office = office_from(work, day, cache=cache)
+    office = office_from(work, day, cache=cache, limits=limits)
     found = renewals.renew(work, office, usdot, tuple(body.numbers), day, who.person)
     work.commit()
     return RenewedOut(
