@@ -1,3 +1,14 @@
+# Java
+target/
+build/
+.gradle/
+.idea/
+*.iml
+out/
+*.mv.db
+*.trace.db
+
+# Python, until the original sources are removed
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -5,7 +16,6 @@ __pycache__/
 .mypy_cache/
 .coverage
 htmlcov/
-build/
 dist/
 *.egg-info/
 .venv/
