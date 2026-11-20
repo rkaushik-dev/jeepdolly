@@ -49,6 +49,17 @@ public final class ReferenceCache {
         books.clear();
     }
 
+    /**
+     * Forget every day and every count, as a newly made cache would. For a process whose tables are
+     * replaced underneath it without a flush, such as a reload from a dump.
+     */
+    public synchronized void reset() {
+        books.clear();
+        hits = 0;
+        misses = 0;
+        emptied = 0;
+    }
+
     /** The days held, earliest first. */
     public synchronized List<LocalDate> days() {
         return List.copyOf(books.keySet());
