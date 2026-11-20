@@ -2,6 +2,7 @@ package io.github.rkaushikdev.jeepdolly.persistence;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import io.github.rkaushikdev.jeepdolly.domain.CommodityBook;
 import jakarta.persistence.EntityManagerFactory;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -154,10 +155,17 @@ public final class Database implements AutoCloseable {
 
     /** A fresh unit of work with its transaction begun. Nothing sticks unless it commits. */
     public UnitOfWork unitOfWork() {
+        return new UnitOfWork(session());
+    }
+
+    /** A fresh unit of work whose applications read back against a commodity book already held. */
+    public UnitOfWork unitOfWork(CommodityBook commodities) {
+        return new UnitOfWork(session(), commodities);
+    }
+
+    private Session session() {
         SessionFactory sessions = entityManagerFactory().unwrap(SessionFactory.class);
-        Session session =
-                sessions.withOptions().interceptor(new ChangeTracker(listeners)).openSession();
-        return new UnitOfWork(session);
+        return sessions.withOptions().interceptor(new ChangeTracker(listeners)).openSession();
     }
 
     /**

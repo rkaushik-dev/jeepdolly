@@ -11,6 +11,8 @@ import io.github.rkaushikdev.jeepdolly.domain.UnitKind;
 import io.github.rkaushikdev.jeepdolly.enforcement.CitationState;
 import io.github.rkaushikdev.jeepdolly.enforcement.Offence;
 import io.github.rkaushikdev.jeepdolly.permits.ApplicationState;
+import io.github.rkaushikdev.jeepdolly.permits.PermitState;
+import io.github.rkaushikdev.jeepdolly.permits.Reason;
 import io.github.rkaushikdev.jeepdolly.structures.ReviewState;
 import io.github.rkaushikdev.jeepdolly.structures.StructureKind;
 import jakarta.persistence.AttributeConverter;
@@ -137,6 +139,22 @@ public abstract class EnumValue<E extends Enum<E> & Valued> implements Attribute
     public static final class ApplicationStates extends EnumValue<ApplicationState> {
         public ApplicationStates() {
             super(ApplicationState.class);
+        }
+    }
+
+    /** Where a permit stands, as its short value. */
+    @Converter(autoApply = true)
+    public static final class PermitStates extends EnumValue<PermitState> {
+        public PermitStates() {
+            super(PermitState.class);
+        }
+    }
+
+    /** Why a copy was printed, as its short value. */
+    @Converter(autoApply = true)
+    public static final class Reasons extends EnumValue<Reason> {
+        public Reasons() {
+            super(Reason.class);
         }
     }
 }

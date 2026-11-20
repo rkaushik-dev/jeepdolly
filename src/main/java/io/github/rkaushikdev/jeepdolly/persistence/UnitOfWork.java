@@ -1,15 +1,20 @@
 package io.github.rkaushikdev.jeepdolly.persistence;
 
 import io.github.rkaushikdev.jeepdolly.Conflict;
+import io.github.rkaushikdev.jeepdolly.domain.CommodityBook;
+import io.github.rkaushikdev.jeepdolly.persistence.repositories.ApplicationRepository;
 import io.github.rkaushikdev.jeepdolly.persistence.repositories.CarrierRepository;
 import io.github.rkaushikdev.jeepdolly.persistence.repositories.CitationRepository;
 import io.github.rkaushikdev.jeepdolly.persistence.repositories.CommodityRepository;
 import io.github.rkaushikdev.jeepdolly.persistence.repositories.LineRepository;
 import io.github.rkaushikdev.jeepdolly.persistence.repositories.NetworkRepository;
+import io.github.rkaushikdev.jeepdolly.persistence.repositories.PermitRepository;
 import io.github.rkaushikdev.jeepdolly.persistence.repositories.PilotRepository;
+import io.github.rkaushikdev.jeepdolly.persistence.repositories.ReprintRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 import jakarta.persistence.PersistenceException;
+import java.util.Optional;
 
 /**
  * One persistence context, one transaction, and the repositories over it.
@@ -31,17 +36,30 @@ import jakarta.persistence.PersistenceException;
  * transaction as the permit that carries it. A commit begins the next transaction straight away
  * and keeps every row it wrote readable, so work can carry on in the same unit.
  *
- * <p>The permit tables' repositories (applications, permits, reprints) hang off here too once the
- * permit documents they map are in place.
+ * <p>Applications read back against a commodity book. A caller that already holds one passes it
+ * in; otherwise the unit of work reads the table the first time an application is asked for.
  */
 public final class UnitOfWork implements AutoCloseable {
 
     private final EntityManager entityManager;
+    private final Optional<CommodityBook> commodities;
     private boolean open = true;
 
     /** A unit of work over an entity manager somebody opened, its transaction begun here. */
     public UnitOfWork(EntityManager entityManager) {
+        this(entityManager, Optional.empty());
+    }
+
+    /**
+     * A unit of work whose applications read back against a commodity book the caller already holds.
+     */
+    public UnitOfWork(EntityManager entityManager, CommodityBook commodities) {
+        this(entityManager, Optional.of(commodities));
+    }
+
+    private UnitOfWork(EntityManager entityManager, Optional<CommodityBook> commodities) {
         this.entityManager = entityManager;
+        this.commodities = commodities;
         entityManager.getTransaction().begin();
     }
 
@@ -79,6 +97,21 @@ public final class UnitOfWork implements AutoCloseable {
 
     public PilotRepository pilots() {
         return new PilotRepository(require());
+    }
+
+    /** Applications, read back against the book given or, failing that, the table on file. */
+    public ApplicationRepository applications() {
+        EntityManager opened = require();
+        return new ApplicationRepository(
+                opened, commodities.orElseGet(() -> commodities().book()));
+    }
+
+    public PermitRepository permits() {
+        return new PermitRepository(require());
+    }
+
+    public ReprintRepository reprints() {
+        return new ReprintRepository(require());
     }
 
     /** The permit number counter, inside this transaction. */

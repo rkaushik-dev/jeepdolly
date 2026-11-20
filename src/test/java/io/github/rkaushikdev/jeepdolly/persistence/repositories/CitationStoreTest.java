@@ -12,9 +12,13 @@ import io.github.rkaushikdev.jeepdolly.enforcement.CitationState;
 import io.github.rkaushikdev.jeepdolly.enforcement.Offence;
 import io.github.rkaushikdev.jeepdolly.enforcement.Penalty;
 import io.github.rkaushikdev.jeepdolly.enforcement.PenaltySchedule;
+import io.github.rkaushikdev.jeepdolly.permits.Application;
+import io.github.rkaushikdev.jeepdolly.permits.Permit;
 import io.github.rkaushikdev.jeepdolly.persistence.UnitOfWork;
 import io.github.rkaushikdev.jeepdolly.persistence.models.CitationRow;
+import io.github.rkaushikdev.jeepdolly.support.Applications;
 import io.github.rkaushikdev.jeepdolly.support.Databases;
+import io.github.rkaushikdev.jeepdolly.support.Permits;
 import java.time.LocalDate;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
@@ -111,6 +115,18 @@ class CitationStoreTest {
     @Test
     void aCitationNobodyHasIsARefusalThatNamesIt() {
         assertThatThrownBy(() -> citations().get("E-25-9999")).isInstanceOf(NotOnFile.class);
+    }
+
+    @Test
+    void aCitationCanNameThePermitItWasWrittenUnder() {
+        Application application = Applications.anApplication();
+        work.applications().add(application);
+        work.flush();
+        Permit permit = Permits.aPermit(application);
+        work.permits().add(permit);
+        work.flush();
+        filed(aCitation().permit(permit.number().toString()));
+        assertThat(citations().get("E-25-0417").permit()).contains("25-P-004471");
     }
 
     @Test

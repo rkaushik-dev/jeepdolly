@@ -16,6 +16,7 @@ import io.github.rkaushikdev.jeepdolly.persistence.models.RestrictionRow;
 import io.github.rkaushikdev.jeepdolly.persistence.models.StructureRow;
 import io.github.rkaushikdev.jeepdolly.structures.Structure;
 import io.github.rkaushikdev.jeepdolly.structures.StructureKind;
+import io.github.rkaushikdev.jeepdolly.support.Applications;
 import io.github.rkaushikdev.jeepdolly.support.Databases;
 import io.github.rkaushikdev.jeepdolly.utilities.Crossing;
 import io.github.rkaushikdev.jeepdolly.utilities.LineOwner;
@@ -122,6 +123,14 @@ class ReferenceCacheTest {
     }
 
     @Test
+    void aNewApplicationIsNotATouch() {
+        try (UnitOfWork work = factory.unitOfWork()) {
+            work.applications().add(Applications.anApplication());
+            assertThat(Reference.touched(work.entityManager())).isFalse();
+        }
+    }
+
+    @Test
     void aCarrierIsNotATouchBecauseCarriersAreReadFresh() {
         try (UnitOfWork work = factory.unitOfWork()) {
             work.add(new CarrierRow(3300111, "New Haulage", "Bangor", "ME"));
@@ -172,6 +181,19 @@ class ReferenceCacheTest {
             work.flush();
             assertThat(cache.size()).isZero();
             assertThat(cache.emptied()).isEqualTo(1);
+        }
+    }
+
+    @Test
+    void anUnwatchedWriteLeavesTheCacheAlone() {
+        ReferenceCache cache = new ReferenceCache();
+        watch(cache);
+        try (UnitOfWork work = factory.unitOfWork()) {
+            cache.books(work.entityManager(), APRIL);
+            work.applications().add(Applications.anApplication());
+            work.flush();
+            assertThat(cache.size()).isEqualTo(1);
+            assertThat(cache.emptied()).isZero();
         }
     }
 
