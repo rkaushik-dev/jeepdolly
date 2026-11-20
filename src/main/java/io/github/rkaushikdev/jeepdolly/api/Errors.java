@@ -23,6 +23,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -135,7 +136,9 @@ public class Errors {
         List<Rejected.Problem> problems = new ArrayList<>();
         failure.getParameterValidationResults().forEach(result -> {
             String name = result.getMethodParameter().getParameterName();
-            String root = result.getMethodParameter().hasParameterAnnotation(PathVariable.class) ? "path" : "query";
+            String root = result.getMethodParameter().hasParameterAnnotation(RequestBody.class)
+                    ? "body"
+                    : result.getMethodParameter().hasParameterAnnotation(PathVariable.class) ? "path" : "query";
             result.getResolvableErrors()
                     .forEach(error -> problems.add(
                             new Rejected.Problem(List.of(root, String.valueOf(name)), error.getDefaultMessage())));
