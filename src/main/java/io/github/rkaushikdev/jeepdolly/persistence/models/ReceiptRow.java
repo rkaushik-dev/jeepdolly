@@ -7,9 +7,14 @@ import static io.github.rkaushikdev.jeepdolly.persistence.Columns.TEXT_LENGTH;
 import io.github.rkaushikdev.jeepdolly.Dollars;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.List;
@@ -24,7 +29,13 @@ import java.util.Optional;
  * day, and the nightly reconciliation counts the rest apart.
  */
 @Entity
-@Table(name = "receipts")
+@Table(
+        name = "receipts",
+        indexes = {
+            @Index(name = "ix_receipts_method", columnList = "method"),
+            @Index(name = "ix_receipts_permit", columnList = "permit"),
+            @Index(name = "ix_receipts_taken", columnList = "taken")
+        })
 public class ReceiptRow {
 
     /** What the drawer holds at the end of the day. */
@@ -58,6 +69,16 @@ public class ReceiptRow {
 
     @Column(name = "note", length = TEXT_LENGTH, nullable = false)
     private String note = "";
+
+    /** Declares the foreign key on {@code permit}. Written through the permit column. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "permit",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_receipts_permit_permits"))
+    private PermitRow permitRow;
 
     protected ReceiptRow() {}
 

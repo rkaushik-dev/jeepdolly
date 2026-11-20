@@ -9,7 +9,9 @@ import io.github.rkaushikdev.jeepdolly.escorts.Operator;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -26,7 +28,13 @@ import java.util.stream.Collectors;
  * two is a table nobody remembers to read.
  */
 @Entity
-@Table(name = "pilot_cards")
+@Table(
+        name = "pilot_cards",
+        indexes = {
+            @Index(name = "ix_pilot_cards_company_ident", columnList = "company_ident"),
+            @Index(name = "ix_pilot_cards_expires", columnList = "expires"),
+            @Index(name = "ix_pilot_cards_name", columnList = "name")
+        })
 public class PilotCardRow {
 
     /** How the endorsement set is written into the one column that holds it. */
@@ -55,7 +63,12 @@ public class PilotCardRow {
     private boolean suspended;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "company_ident", insertable = false, updatable = false)
+    @JoinColumn(
+            name = "company_ident",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_pilot_cards_company_ident_pilot_companies"))
     private PilotCompanyRow company;
 
     protected PilotCardRow() {}

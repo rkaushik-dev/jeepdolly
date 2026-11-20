@@ -9,6 +9,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
@@ -18,7 +19,9 @@ import java.util.List;
 
 /** Whoever owns a wire over the road, and how much warning they want before a load comes. */
 @Entity
-@Table(name = "line_owners")
+@Table(
+        name = "line_owners",
+        indexes = {@Index(name = "ix_line_owners_name", columnList = "name")})
 public class LineOwnerRow {
 
     /** The working days' notice an owner wants when nobody has said otherwise. */

@@ -8,6 +8,7 @@ import io.github.rkaushikdev.jeepdolly.domain.AxleKind;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
@@ -51,7 +52,12 @@ public class ApplicationAxleRow {
     private Inches spacingBefore;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reference", insertable = false, updatable = false)
+    @JoinColumn(
+            name = "reference",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_application_axles_reference_applications"))
     private ApplicationRow application;
 
     protected ApplicationAxleRow() {}

@@ -11,7 +11,12 @@ import io.github.rkaushikdev.jeepdolly.structures.Structure;
 import io.github.rkaushikdev.jeepdolly.structures.StructureKind;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -29,7 +34,9 @@ import java.util.stream.Collectors;
  * calculation.
  */
 @Entity
-@Table(name = "structures")
+@Table(
+        name = "structures",
+        indexes = {@Index(name = "ix_structures_segment_ident", columnList = "segment_ident")})
 public class StructureRow {
 
     @Id
@@ -68,6 +75,16 @@ public class StructureRow {
 
     @Column(name = "deck_width")
     private Inches deckWidth;
+
+    /** Declares the foreign key on {@code segment_ident}. Written through the segment_ident column. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "segment_ident",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_structures_segment_ident_segments"))
+    private SegmentRow segment;
 
     protected StructureRow() {}
 

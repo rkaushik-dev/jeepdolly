@@ -9,7 +9,12 @@ import io.github.rkaushikdev.jeepdolly.permits.ApplicationState;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
@@ -32,7 +37,14 @@ import java.util.List;
  * quoted back and refused in writing.
  */
 @Entity
-@Table(name = "applications")
+@Table(
+        name = "applications",
+        indexes = {
+            @Index(name = "ix_applications_filed", columnList = "filed"),
+            @Index(name = "ix_applications_state", columnList = "state"),
+            @Index(name = "ix_applications_travel_start", columnList = "travel_start"),
+            @Index(name = "ix_applications_usdot", columnList = "usdot")
+        })
 public class ApplicationRow {
 
     @Id
@@ -107,6 +119,26 @@ public class ApplicationRow {
     @OneToMany(mappedBy = "application", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("position")
     private List<ApplicationPieceRow> pieces = new ArrayList<>();
+
+    /** Declares the foreign key on {@code usdot}. Written through the usdot column. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "usdot",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_applications_usdot_carriers"))
+    private CarrierRow carrier;
+
+    /** Declares the foreign key on {@code commodity}. Written through the commodity column. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "commodity",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_applications_commodity_commodities"))
+    private CommodityRow commodityLine;
 
     protected ApplicationRow() {}
 

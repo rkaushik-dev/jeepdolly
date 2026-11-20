@@ -7,6 +7,7 @@ import static io.github.rkaushikdev.jeepdolly.persistence.Columns.TEXT_LENGTH;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -20,7 +21,12 @@ import java.util.Optional;
  * key is kept, because the permits written with it are still on file with the name attached.
  */
 @Entity
-@Table(name = "api_keys")
+@Table(
+        name = "api_keys",
+        indexes = {
+            @Index(name = "ix_api_keys_digest", columnList = "digest", unique = true),
+            @Index(name = "ix_api_keys_role", columnList = "role")
+        })
 public class ApiKeyRow {
 
     /** A sha256 in hexadecimal. */

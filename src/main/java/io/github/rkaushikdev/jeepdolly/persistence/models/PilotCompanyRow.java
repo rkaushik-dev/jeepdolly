@@ -9,6 +9,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
@@ -24,7 +25,9 @@ import java.util.List;
  * history, and the day it does this becomes a third table like the carrier one.
  */
 @Entity
-@Table(name = "pilot_companies")
+@Table(
+        name = "pilot_companies",
+        indexes = {@Index(name = "ix_pilot_companies_name", columnList = "name")})
 public class PilotCompanyRow {
 
     @Id

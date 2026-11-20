@@ -8,7 +8,9 @@ import io.github.rkaushikdev.jeepdolly.domain.Insurance;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -17,7 +19,9 @@ import java.util.Optional;
 
 /** One certificate of insurance, as filed. Never edited: a renewal is a new row. */
 @Entity
-@Table(name = "insurance_certificates")
+@Table(
+        name = "insurance_certificates",
+        indexes = {@Index(name = "ix_insurance_certificates_usdot", columnList = "usdot")})
 public class InsuranceRow {
 
     @Id
@@ -43,7 +47,12 @@ public class InsuranceRow {
     private LocalDate filed;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usdot", insertable = false, updatable = false)
+    @JoinColumn(
+            name = "usdot",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_insurance_certificates_usdot_carriers"))
     private CarrierRow carrier;
 
     protected InsuranceRow() {}

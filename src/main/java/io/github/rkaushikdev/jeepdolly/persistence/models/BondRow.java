@@ -8,7 +8,9 @@ import io.github.rkaushikdev.jeepdolly.domain.Bond;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -16,7 +18,9 @@ import java.time.LocalDate;
 
 /** One surety bond, as filed. Never edited: a renewal is a new row. */
 @Entity
-@Table(name = "bonds")
+@Table(
+        name = "bonds",
+        indexes = {@Index(name = "ix_bonds_usdot", columnList = "usdot")})
 public class BondRow {
 
     @Id
@@ -39,7 +43,12 @@ public class BondRow {
     private LocalDate expires;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usdot", insertable = false, updatable = false)
+    @JoinColumn(
+            name = "usdot",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_bonds_usdot_carriers"))
     private CarrierRow carrier;
 
     protected BondRow() {}

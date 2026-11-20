@@ -8,6 +8,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
@@ -28,7 +29,9 @@ import java.util.Optional;
  * too, and ended with a date rather than deleted.
  */
 @Entity
-@Table(name = "carriers")
+@Table(
+        name = "carriers",
+        indexes = {@Index(name = "ix_carriers_name", columnList = "name")})
 public class CarrierRow {
 
     @Id

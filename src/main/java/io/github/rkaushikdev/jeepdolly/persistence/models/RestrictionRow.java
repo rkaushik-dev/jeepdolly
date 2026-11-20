@@ -10,13 +10,16 @@ import io.github.rkaushikdev.jeepdolly.domain.RestrictionKind;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Optional;
+import org.hibernate.annotations.FractionalSeconds;
 
 /**
  * One thing wrong with one segment, for a while or for good.
@@ -27,7 +30,12 @@ import java.util.Optional;
  * stored as the weekday digits it runs on, Monday as {@code 0}, and two clock times.
  */
 @Entity
-@Table(name = "restrictions")
+@Table(
+        name = "restrictions",
+        indexes = {
+            @Index(name = "ix_restrictions_kind", columnList = "kind"),
+            @Index(name = "ix_restrictions_segment_ident", columnList = "segment_ident")
+        })
 public class RestrictionRow {
 
     @Id
@@ -58,9 +66,11 @@ public class RestrictionRow {
     @Column(name = "curfew_days", length = 16)
     private String curfewDays;
 
+    @FractionalSeconds(0)
     @Column(name = "curfew_from")
     private LocalTime curfewFrom;
 
+    @FractionalSeconds(0)
     @Column(name = "curfew_to")
     private LocalTime curfewTo;
 
@@ -71,7 +81,12 @@ public class RestrictionRow {
     private LocalDate expires;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "segment_ident", insertable = false, updatable = false)
+    @JoinColumn(
+            name = "segment_ident",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_restrictions_segment_ident_segments"))
     private SegmentRow segment;
 
     protected RestrictionRow() {}

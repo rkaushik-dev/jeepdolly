@@ -12,7 +12,12 @@ import io.github.rkaushikdev.jeepdolly.enforcement.CitationState;
 import io.github.rkaushikdev.jeepdolly.enforcement.Offence;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -31,7 +36,16 @@ import java.util.Optional;
  * because the citations that matter most are the ones written for having no permit at all.
  */
 @Entity
-@Table(name = "citations")
+@Table(
+        name = "citations",
+        indexes = {
+            @Index(name = "ix_citations_filed", columnList = "filed"),
+            @Index(name = "ix_citations_offence", columnList = "offence"),
+            @Index(name = "ix_citations_permit", columnList = "permit"),
+            @Index(name = "ix_citations_state", columnList = "state"),
+            @Index(name = "ix_citations_usdot", columnList = "usdot"),
+            @Index(name = "ix_citations_written", columnList = "written")
+        })
 public class CitationRow {
 
     @Id
@@ -85,6 +99,25 @@ public class CitationRow {
 
     @Column(name = "note", length = TEXT_LENGTH, nullable = false)
     private String note = "";
+
+    /** Declares the foreign key on {@code usdot}. Written through the usdot column. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "usdot",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_citations_usdot_carriers"))
+    private CarrierRow carrier;
+
+    /** Declares the foreign key on {@code permit}. Written through the permit column. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "permit",
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_citations_permit_permits"))
+    private PermitRow permitRow;
 
     protected CitationRow() {}
 

@@ -9,6 +9,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -22,7 +23,14 @@ import java.util.Optional;
  * describes, and a trail row a cascade could delete is not a trail.
  */
 @Entity
-@Table(name = "audit_trail")
+@Table(
+        name = "audit_trail",
+        indexes = {
+            @Index(name = "ix_audit_trail_action", columnList = "action"),
+            @Index(name = "ix_audit_trail_actor", columnList = "actor"),
+            @Index(name = "ix_audit_trail_happened", columnList = "happened"),
+            @Index(name = "ix_audit_trail_reference", columnList = "reference")
+        })
 public class AuditRow {
 
     @Id

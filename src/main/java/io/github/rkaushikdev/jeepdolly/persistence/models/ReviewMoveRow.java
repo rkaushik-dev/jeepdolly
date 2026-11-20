@@ -8,6 +8,7 @@ import io.github.rkaushikdev.jeepdolly.structures.ReviewState;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
@@ -45,7 +46,12 @@ public class ReviewMoveRow {
     private String note = "";
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reference", insertable = false, updatable = false)
+    @JoinColumn(
+            name = "reference",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_review_moves_reference_reviews"))
     private ReviewRow review;
 
     protected ReviewMoveRow() {}

@@ -9,6 +9,7 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
@@ -26,7 +27,12 @@ import java.util.Optional;
  * land on the same day and the history has to read in the order it happened.
  */
 @Entity
-@Table(name = "reviews")
+@Table(
+        name = "reviews",
+        indexes = {
+            @Index(name = "ix_reviews_opened", columnList = "opened"),
+            @Index(name = "ix_reviews_state", columnList = "state")
+        })
 public class ReviewRow {
 
     @Id

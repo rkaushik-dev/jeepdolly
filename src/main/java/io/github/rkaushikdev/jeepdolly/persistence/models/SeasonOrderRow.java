@@ -9,6 +9,7 @@ import io.github.rkaushikdev.jeepdolly.SeasonOrder;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 
@@ -22,7 +23,12 @@ import java.time.LocalDate;
  * because a permit issued under it is priced against a limit only that row explains.
  */
 @Entity
-@Table(name = "season_orders")
+@Table(
+        name = "season_orders",
+        indexes = {
+            @Index(name = "ix_season_orders_region", columnList = "region"),
+            @Index(name = "ix_season_orders_region_starts", columnList = "region, starts")
+        })
 public class SeasonOrderRow {
 
     @Id

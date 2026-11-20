@@ -9,7 +9,9 @@ import io.github.rkaushikdev.jeepdolly.utilities.Crossing;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -26,7 +28,12 @@ import java.util.Optional;
  * which is a real distinction and not a missing value.
  */
 @Entity
-@Table(name = "line_crossings")
+@Table(
+        name = "line_crossings",
+        indexes = {
+            @Index(name = "ix_line_crossings_owner_ident", columnList = "owner_ident"),
+            @Index(name = "ix_line_crossings_segment_ident", columnList = "segment_ident")
+        })
 public class LineCrossingRow {
 
     @Id
@@ -55,8 +62,23 @@ public class LineCrossingRow {
     private String note = "";
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_ident", insertable = false, updatable = false)
+    @JoinColumn(
+            name = "owner_ident",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_line_crossings_owner_ident_line_owners"))
     private LineOwnerRow owner;
+
+    /** Declares the foreign key on {@code segment_ident}. Written through the segment_ident column. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "segment_ident",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_line_crossings_segment_ident_segments"))
+    private SegmentRow segment;
 
     protected LineCrossingRow() {}
 

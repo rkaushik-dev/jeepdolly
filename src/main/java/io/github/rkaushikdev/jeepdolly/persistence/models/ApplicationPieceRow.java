@@ -6,6 +6,7 @@ import static io.github.rkaushikdev.jeepdolly.persistence.Columns.NAME_LENGTH;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
@@ -40,8 +41,23 @@ public class ApplicationPieceRow {
     private String serial;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reference", insertable = false, updatable = false)
+    @JoinColumn(
+            name = "reference",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_application_pieces_reference_applications"))
     private ApplicationRow application;
+
+    /** Declares the foreign key on {@code commodity}. Written through the commodity column. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "commodity",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_application_pieces_commodity_commodities"))
+    private CommodityRow commodityLine;
 
     protected ApplicationPieceRow() {}
 

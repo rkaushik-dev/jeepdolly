@@ -8,6 +8,7 @@ import io.github.rkaushikdev.jeepdolly.domain.UnitKind;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.JoinColumn;
@@ -50,7 +51,12 @@ public class ApplicationUnitRow {
     private String unitNumber = "";
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reference", insertable = false, updatable = false)
+    @JoinColumn(
+            name = "reference",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_application_units_reference_applications"))
     private ApplicationRow application;
 
     protected ApplicationUnitRow() {}

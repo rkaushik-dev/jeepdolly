@@ -10,7 +10,9 @@ import io.github.rkaushikdev.jeepdolly.domain.Segment;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -21,7 +23,13 @@ import java.util.Optional;
  * asked for without parsing anything.
  */
 @Entity
-@Table(name = "segments")
+@Table(
+        name = "segments",
+        indexes = {
+            @Index(name = "ix_segments_district", columnList = "district"),
+            @Index(name = "ix_segments_end_node", columnList = "end_node"),
+            @Index(name = "ix_segments_start_node", columnList = "start_node")
+        })
 public class SegmentRow {
 
     @Id
@@ -59,11 +67,21 @@ public class SegmentRow {
     private boolean oneWay;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "start_node", insertable = false, updatable = false)
+    @JoinColumn(
+            name = "start_node",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_segments_start_node_nodes"))
     private NodeRow start;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "end_node", insertable = false, updatable = false)
+    @JoinColumn(
+            name = "end_node",
+            nullable = false,
+            insertable = false,
+            updatable = false,
+            foreignKey = @ForeignKey(name = "fk_segments_end_node_nodes"))
     private NodeRow end;
 
     protected SegmentRow() {}
