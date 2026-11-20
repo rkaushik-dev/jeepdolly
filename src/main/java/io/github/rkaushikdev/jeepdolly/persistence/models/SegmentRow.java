@@ -90,17 +90,25 @@ public class SegmentRow {
     public static SegmentRow of(Segment segment) {
         SegmentRow row = new SegmentRow();
         row.ident = segment.ident();
-        row.routeKind = segment.route().kind();
-        row.routeNumber = segment.route().number();
-        row.routeSuffix = segment.route().suffix();
-        row.startNode = segment.start();
-        row.endNode = segment.end();
-        row.length = segment.length();
-        row.county = segment.jurisdiction().county();
-        row.town = segment.jurisdiction().town();
-        row.district = segment.jurisdiction().district();
-        row.oneWay = segment.oneWay();
+        row.refresh(segment);
         return row;
+    }
+
+    /**
+     * Take every field but the ident from a fresh reading of the same segment, which is how a
+     * published road log updates a segment already on file.
+     */
+    public void refresh(Segment segment) {
+        this.routeKind = segment.route().kind();
+        this.routeNumber = segment.route().number();
+        this.routeSuffix = segment.route().suffix();
+        this.startNode = segment.start();
+        this.endNode = segment.end();
+        this.length = segment.length();
+        this.county = segment.jurisdiction().county();
+        this.town = segment.jurisdiction().town();
+        this.district = segment.jurisdiction().district();
+        this.oneWay = segment.oneWay();
     }
 
     public String getIdent() {

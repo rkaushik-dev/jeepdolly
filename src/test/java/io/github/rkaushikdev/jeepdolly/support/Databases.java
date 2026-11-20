@@ -66,7 +66,7 @@ public final class Databases {
         return database;
     }
 
-    /** Everything the reference tables hold, so an office can be built: support.py's seed. */
+    /** Everything the reference tables hold, so an office can be built. */
     public static void seed(UnitOfWork work) {
         CommodityBook book = CommodityBook.standard();
         for (String code : book.codes()) {

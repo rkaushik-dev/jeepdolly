@@ -109,6 +109,11 @@ public class InsuranceRow {
         return expires;
     }
 
+    /** Correct the expiry, as the office does when a renewed certificate arrives. */
+    public void setExpires(LocalDate expires) {
+        this.expires = expires;
+    }
+
     /** The day the office received it, when somebody wrote that down. */
     public Optional<LocalDate> getFiled() {
         return Optional.ofNullable(filed);
