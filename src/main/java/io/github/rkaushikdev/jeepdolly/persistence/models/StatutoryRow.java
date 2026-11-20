@@ -113,6 +113,11 @@ public class StatutoryRow {
         return gross;
     }
 
+    /** Amend the gross limit, as a filed change to the table does. */
+    public void setGross(Pounds gross) {
+        this.gross = gross;
+    }
+
     public int getTireRate() {
         return tireRate;
     }

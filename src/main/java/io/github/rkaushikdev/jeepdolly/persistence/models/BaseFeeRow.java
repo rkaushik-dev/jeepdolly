@@ -51,6 +51,11 @@ public class BaseFeeRow {
         return amount;
     }
 
+    /** Amend the fee, as a filed change to the schedule does. */
+    public void setAmount(Dollars amount) {
+        this.amount = amount;
+    }
+
     @Override
     public String toString() {
         return "<BaseFeeRow " + kind + " " + effective + ">";
