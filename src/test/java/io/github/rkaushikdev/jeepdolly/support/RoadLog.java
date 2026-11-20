@@ -1,6 +1,7 @@
 package io.github.rkaushikdev.jeepdolly.support;
 
 import io.github.rkaushikdev.jeepdolly.Miles;
+import io.github.rkaushikdev.jeepdolly.Written;
 import io.github.rkaushikdev.jeepdolly.domain.Jurisdiction;
 import io.github.rkaushikdev.jeepdolly.domain.Network;
 import io.github.rkaushikdev.jeepdolly.domain.Node;
@@ -9,7 +10,6 @@ import io.github.rkaushikdev.jeepdolly.domain.Segment;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -61,22 +61,17 @@ public final class RoadLog {
         return Collections.unmodifiableMap(found);
     }
 
-    /** A place name the way a road sign capitalises it. */
-    public static String title(String name) {
-        return name.substring(0, 1).toUpperCase(Locale.ROOT) + name.substring(1);
-    }
-
     /** The jurisdiction of one place in the test network. */
     public static Jurisdiction place(String name) {
         Place found = PLACES.get(name);
-        return new Jurisdiction(found.county(), title(name), found.district());
+        return new Jurisdiction(found.county(), Written.title(name), found.district());
     }
 
     /** Nine places, twelve segments, two ways round most things. */
     public static Network roadLog() {
         Network network = new Network();
         for (String name : PLACES.keySet()) {
-            network.addNode(new Node(name, title(name)));
+            network.addNode(new Node(name, Written.title(name)));
         }
         for (Road road : ROADS) {
             network.addSegment(new Segment(

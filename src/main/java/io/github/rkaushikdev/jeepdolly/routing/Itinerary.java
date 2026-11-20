@@ -3,6 +3,7 @@ package io.github.rkaushikdev.jeepdolly.routing;
 import io.github.rkaushikdev.jeepdolly.Facts;
 import io.github.rkaushikdev.jeepdolly.Impossible;
 import io.github.rkaushikdev.jeepdolly.Miles;
+import io.github.rkaushikdev.jeepdolly.Written;
 import io.github.rkaushikdev.jeepdolly.domain.HighwayClass;
 import io.github.rkaushikdev.jeepdolly.domain.Network;
 import io.github.rkaushikdev.jeepdolly.domain.Segment;
@@ -149,28 +150,12 @@ public final class Itinerary implements Iterable<Leg> {
     public String narrative() {
         List<String> parts = new ArrayList<>();
         for (Leg leg : legs) {
-            String step = leg.segment().route() + " to " + titled(leg.leftAt());
+            String step = leg.segment().route() + " to " + Written.title(leg.leftAt());
             if (parts.isEmpty() || !parts.get(parts.size() - 1).equals(step)) {
                 parts.add(step);
             }
         }
-        return "from " + titled(origin) + ", " + String.join(", ", parts);
-    }
-
-    /**
-     * A place name capitalised the way a road sign prints it: the first letter of every word up,
-     * the rest down.
-     */
-    private static String titled(String name) {
-        StringBuilder out = new StringBuilder(name.length());
-        boolean inWord = false;
-        for (int index = 0; index < name.length(); index++) {
-            char one = name.charAt(index);
-            boolean cased = Character.isUpperCase(one) || Character.isLowerCase(one) || Character.isTitleCase(one);
-            out.append(cased && !inWord ? Character.toTitleCase(one) : Character.toLowerCase(one));
-            inWord = cased;
-        }
-        return out.toString();
+        return "from " + Written.title(origin) + ", " + String.join(", ", parts);
     }
 
     /** How many legs the trip has. */

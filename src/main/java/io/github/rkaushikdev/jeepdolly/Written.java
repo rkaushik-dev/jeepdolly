@@ -1,7 +1,8 @@
 package io.github.rkaushikdev.jeepdolly;
 
 /**
- * How a refusal quotes back what somebody wrote, and how it tells a number from anything else.
+ * How the office writes back what somebody wrote: quoted in a refusal, checked for being a number,
+ * or capitalised as a place name.
  *
  * <p>A refusal letter says {@code cannot read 'about fourteen feet' as a size}, with the hauler's
  * own words in quotes, so the hauler can see exactly what the office was handed. The quoting is
@@ -40,5 +41,21 @@ public final class Written {
     /** Whether the text is one or more digits and nothing else, not even a sign or a space. */
     public static boolean isDigits(String text) {
         return !text.isEmpty() && text.chars().allMatch(one -> one >= '0' && one <= '9');
+    }
+
+    /**
+     * A place name capitalised the way a road sign prints it: the first letter of every word up,
+     * the rest down, where a word is a run of letters. {@code o'brien} reads {@code O'Brien}.
+     */
+    public static String title(String text) {
+        StringBuilder out = new StringBuilder(text.length());
+        boolean inWord = false;
+        for (int index = 0; index < text.length(); index++) {
+            char one = text.charAt(index);
+            boolean cased = Character.isUpperCase(one) || Character.isLowerCase(one) || Character.isTitleCase(one);
+            out.append(cased && !inWord ? Character.toTitleCase(one) : Character.toLowerCase(one));
+            inWord = cased;
+        }
+        return out.toString();
     }
 }
