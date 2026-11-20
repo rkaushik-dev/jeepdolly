@@ -22,7 +22,7 @@ import jakarta.persistence.Converter;
  * <p>Rows have to be readable in a console at two in the morning, and adding a class of road
  * should not be a migration. One converter per stored enumeration, each applied wherever that type
  * appears on a row, and each reading back through the enumeration's own {@link Valued} lookup, so a
- * value nobody knows is refused as loudly as the original refused it.
+ * value nobody knows is refused rather than read as something else.
  *
  * @param <E> the enumeration
  */

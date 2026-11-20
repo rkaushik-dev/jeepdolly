@@ -89,7 +89,7 @@ class LogsTest {
     void troubleAndFailureGoOutAtTheirOwnLevels() {
         Logs.configure(Level.INFO, stream);
         Logs.trouble("route.blocked", Facts.of("segment", "US2-1"));
-        Logs.failure("database.unreachable", Facts.of("url", "sqlite"));
+        Logs.failure("database.unreachable", Facts.of("url", "jdbc:h2:file:./jeepdolly"));
         assertThat(written()).contains("WARNING route.blocked segment=US2-1");
         assertThat(written()).contains("ERROR database.unreachable");
     }

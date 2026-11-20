@@ -1,7 +1,6 @@
 -- Keys for the interface, which arrived with the http surface.
 --
--- Ported from Alembic revision 0002, every table, column, index and constraint under the name the
--- original gave it.
+-- Every constraint and index is named by the schema's convention: pk_, uq_, ix_, fk_ and ck_.
 
 CREATE TABLE api_keys (
     ident VARCHAR(32) NOT NULL,

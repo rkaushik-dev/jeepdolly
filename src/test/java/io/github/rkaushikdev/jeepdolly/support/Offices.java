@@ -16,8 +16,7 @@ import io.github.rkaushikdev.jeepdolly.routing.TurnBook;
  * The whole office wired up against the test network.
  *
  * <p>A test that wants one book different takes {@link #office()}, names that one book on the
- * builder and builds it, the way the original passed one keyword: restrictions, seasons, turns,
- * escorts, enforcement or lines.
+ * builder and builds it: restrictions, seasons, turns, escorts, enforcement or lines.
  */
 public final class Offices {
 

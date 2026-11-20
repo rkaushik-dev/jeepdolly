@@ -11,7 +11,7 @@ import java.util.List;
  * The application the suite argues about: the excavator move from Waterville to Pittsfield.
  *
  * <p>A test that wants it with one thing different takes {@link #application()}, changes that one
- * field on the builder, and builds it, the way the original passed one keyword.
+ * field on the builder, and builds it.
  */
 public final class Applications {
 

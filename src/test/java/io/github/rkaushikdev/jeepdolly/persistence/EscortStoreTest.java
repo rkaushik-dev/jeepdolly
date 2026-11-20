@@ -151,8 +151,8 @@ class EscortStoreTest {
     @Test
     void theCompanyRowCarriesItsCardsForACascade() {
         seed(aCompany(), List.of(anOperator()));
-        // Hibernate keeps the company row it was handed, which never listed the card; the original
-        // loaded the collection on first touch. Reading the row back fresh is the same question.
+        // Hibernate keeps the company row it was handed, which never listed the card,
+        // so the row is read back fresh, which loads the collection from the table.
         db.clear();
         PilotCompanyRow row = db.find(PilotCompanyRow.class, "PC-1");
         assertThat(row.getCards()).extracting(PilotCardRow::getCard).containsExactly("C-1001");

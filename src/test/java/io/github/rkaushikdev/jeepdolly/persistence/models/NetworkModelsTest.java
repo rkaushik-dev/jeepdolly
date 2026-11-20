@@ -100,8 +100,8 @@ class NetworkModelsTest {
         session.add(new NodeRow("solon", "Solon"));
         session.add(SegmentRow.of(anson()));
         session.commit();
-        // Hibernate keeps the segment it was handed, which never named a node row; the original
-        // loaded the relationship on first touch. Reading the row back fresh is the same question.
+        // Hibernate keeps the segment it was handed, which never named a node row, so the row is
+        // read back fresh, which loads the relationship from the table.
         session.entityManager().clear();
         assertThat(find(SegmentRow.class, "US201-4").getStart().orElseThrow().getTown())
                 .isEqualTo("Anson");

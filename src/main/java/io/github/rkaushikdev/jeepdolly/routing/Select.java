@@ -45,7 +45,7 @@ public final class Select {
     /** Extra hundredths of a mile charged per hundredth on the lesser roads. */
     public static final Map<HighwayClass, Integer> PENALTY = penalties();
 
-    /** The frontier's order: cost, then place, then the road arrived on, as the original's heap. */
+    /** The frontier's order: cost, then place, then the road arrived on, so ties break the same way. */
     private static final Comparator<Entry> FRONTIER =
             Comparator.comparingInt(Entry::cost).thenComparing(Entry::here).thenComparing(Entry::arrived);
 

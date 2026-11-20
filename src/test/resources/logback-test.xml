@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- The suite prints warnings and worse, the way the original's runner did, and nothing else. -->
+<!-- The suite prints warnings and worse, and nothing else. -->
 <configuration>
     <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
         <target>System.err</target>
@@ -7,6 +7,8 @@
             <pattern>%d{HH:mm:ss} %-5level %logger{36} %msg%n</pattern>
         </encoder>
     </appender>
+    <!-- Constraint violations the suite provokes on purpose are asserted, not logged. -->
+    <logger name="org.hibernate.engine.jdbc.spi.SqlExceptionHelper" level="OFF"/>
     <root level="WARN">
         <appender-ref ref="console"/>
     </root>

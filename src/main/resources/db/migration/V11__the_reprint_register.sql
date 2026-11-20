@@ -1,7 +1,6 @@
 -- The reprint register, which was a pad by the printer until now.
 --
--- Ported from Alembic revision 0011, every table, column, index and constraint under the name the
--- original gave it.
+-- Every constraint and index is named by the schema's convention: pk_, uq_, ix_, fk_ and ck_.
 
 CREATE TABLE reprints (
     permit VARCHAR(32) NOT NULL,

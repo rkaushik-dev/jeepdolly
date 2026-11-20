@@ -41,7 +41,7 @@ public record ConditionText(String code, Category category, String text, int ord
      * Fill the slots, refusing rather than printing a gap.
      *
      * <p>A doubled brace prints as one brace. A value is printed the way it prints anywhere else; an
-     * absent value prints as {@code None}, as the original wrote it.
+     * absent value prints as {@code None}, the word the office's sheets have always shown.
      *
      * @throws Impossible naming the first slot the facts do not fill
      */

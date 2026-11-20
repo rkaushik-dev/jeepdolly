@@ -40,8 +40,7 @@ class MoneyTest {
 
     @Test
     void moneyIsNeverBuiltFromAFloat() {
-        // Dollars(40.25) and Dollars(True) were type errors at run time; the only way in takes
-        // whole cents.
+        // A fraction or a flag cannot be money: the only way in takes whole cents.
         Signatures.constructorsTakeOnly(Dollars.class, long.class);
     }
 
@@ -51,7 +50,7 @@ class MoneyTest {
         assertThat(Dollars.of(40).minus(Dollars.of(2, 50))).isEqualTo(new Dollars(3750));
         assertThat(Dollars.of(40).times(3)).isEqualTo(new Dollars(12000));
         assertThat(new Dollars(4025).negated()).isEqualTo(new Dollars(-4025));
-        // Dollars.of(40) + 40 was a type error; addition takes only another amount.
+        // An amount never adds a bare number: addition takes only another amount.
         Signatures.methodTakesOnly(Dollars.class, "plus", Dollars.class);
     }
 

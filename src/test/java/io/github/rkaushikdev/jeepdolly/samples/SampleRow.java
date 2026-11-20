@@ -40,7 +40,7 @@ public class SampleRow {
     @Column(name = "road", length = 32)
     private HighwayClass road;
 
-    @Column(name = "issued_on")
+    @Column(name = "day")
     private LocalDate day;
 
     @Column(name = "spare")

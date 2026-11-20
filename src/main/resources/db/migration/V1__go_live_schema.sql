@@ -1,17 +1,12 @@
 -- The schema as it stood on the day the office went live.
 --
--- Written by autogenerate against the models and then read line by line, which is the only way a
--- migration is produced here.
+-- Every value type is stored as what it holds: a weight is whole pounds, a size whole inches, a
+-- distance whole hundredths of a mile, money whole cents, and an enumeration its short string.
+-- Nothing here depends on application code, so the schema can always be built from scratch.
 --
--- One edit is made to every generated file and it is always the same one. The custom column types
--- are written back as the types they are stored in: a weight is an integer, an enumeration is a
--- string. A migration that imports application code stops working the day somebody renames a
--- class, and a migration that stopped working is a database nobody can build from scratch.
---
--- Ported from Alembic revision 0001, every table, column, index and constraint under the name the
--- original gave it. Money is whole cents in BIGINT: bonds.amount,
--- insurance_certificates.liability, permit_fees.amount. The serial key is an identity column, as
--- SQLite's integer primary key was: suspensions.id.
+-- Every constraint and index is named by the schema's convention: pk_, uq_, ix_, fk_ and ck_. Money
+-- is whole cents in BIGINT: bonds.amount, insurance_certificates.liability, permit_fees.amount. The
+-- serial key is an identity column for suspensions.id.
 
 CREATE TABLE carriers (
     usdot INTEGER NOT NULL,

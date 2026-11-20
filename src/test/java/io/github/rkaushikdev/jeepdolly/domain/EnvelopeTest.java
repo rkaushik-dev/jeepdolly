@@ -68,8 +68,8 @@ class EnvelopeTest {
 
     @Test
     void aMeasureThatIsNotASizeIsRefusedBeforeTheArithmetic() {
-        // Envelope(102, ...) was a type error at run time. Every way in takes sizes, so a bare
-        // number does not compile; a missing size is refused before any arithmetic.
+        // Every way in takes sizes, so a bare number does not compile, and a missing size is
+        // refused before any arithmetic.
         Constructor<?>[] constructors = Envelope.class.getConstructors();
         assertThat(constructors).isNotEmpty();
         assertThat(Arrays.stream(constructors).flatMap(one -> Arrays.stream(one.getParameterTypes())))

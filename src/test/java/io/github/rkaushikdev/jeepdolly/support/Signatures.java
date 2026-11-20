@@ -9,12 +9,12 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Checks for the type rules the original enforced at run time and Java enforces at compile time.
+ * Checks for the type rules the compiler enforces, so a test can pin them.
  *
- * <p>The original refused {@code Inches(14.5)} and {@code Inches(96) + 6} with a type error when
- * the line ran. In Java neither line compiles, so the test that pinned the refusal pins the
- * signature instead: the only way in takes the whole number type, and the arithmetic takes only
- * its own kind. Each check fails loudly if it finds nothing to check.
+ * <p>{@code new Inches(14.5)} and {@code Inches.plus(6)} do not compile, and the tests that say a
+ * size is whole inches say it by pinning the signatures: the only way in takes the whole number
+ * type, and the arithmetic takes only its own kind. Each check fails loudly if it finds nothing to
+ * check.
  */
 public final class Signatures {
 

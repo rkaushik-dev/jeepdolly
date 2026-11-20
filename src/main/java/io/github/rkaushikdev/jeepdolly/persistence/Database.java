@@ -25,7 +25,7 @@ import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 
 /**
  * One database: a connection pool, the schema's migrations, and the entity manager factory units
- * of work are opened from. The counterpart of the original's engine and session factory.
+ * of work are opened from.
  *
  * <p>The default is a file in the working directory rather than a server, so a mistyped setting
  * cannot point a developer at production. The in memory database is here rather than in the tests
@@ -49,10 +49,11 @@ public final class Database implements AutoCloseable {
     public static final String MIGRATIONS = "classpath:db/migration";
 
     /**
-     * Column names the schema uses that H2 otherwise reads as keywords. The original ran on SQLite
-     * and Postgres, where {@code year} is an ordinary name; the counter table has one.
+     * Column names H2 otherwise reads as keywords. The schema's own are ordinary names on other
+     * databases ({@code year} on the counter table), and the date words are kept ordinary too so a
+     * column called {@code day} never fails to build.
      */
-    static final String H2_NON_KEYWORDS = "NON_KEYWORDS=YEAR";
+    static final String H2_NON_KEYWORDS = "NON_KEYWORDS=DAY,HOUR,MONTH,YEAR";
 
     private static final String HISTORY_TABLE = "flyway_schema_history";
 
@@ -99,6 +100,8 @@ public final class Database implements AutoCloseable {
         config.setMaximumPoolSize(4);
         config.setMinimumIdle(1);
         config.setInitializationFailTimeout(-1);
+        // A database that is down says so within seconds rather than after half a minute.
+        config.setConnectionTimeout(5000);
         return new HikariDataSource(config);
     }
 
@@ -205,8 +208,8 @@ public final class Database implements AutoCloseable {
     }
 
     /**
-     * Close what this database opened. An in memory database is shut down, so it vanishes the way
-     * the original's in memory engine did. Safe to call twice.
+     * Close what this database opened. An in memory database is shut down, so nothing written to it
+     * outlives it. Safe to call twice.
      */
     @Override
     public synchronized void close() {

@@ -89,8 +89,8 @@ class ErrorsTest {
 
     @Test
     void handingTheWrongTypeInIsADefectAndNotARefusal() {
-        // The original raised a type error at run time for Inches(14.5). Java refuses to compile
-        // it, so the constructor's signature is the check, and a defect stays outside the root.
+        // new Inches(14.5) does not compile: the only constructor takes an int. A defect in the
+        // caller is the compiler's business or an unchecked exception, never a refusal.
         Signatures.constructorsTakeOnly(Inches.class, int.class);
         assertThat(Refusal.class.isAssignableFrom(ClassCastException.class)).isFalse();
         assertThat(Refusal.class.isAssignableFrom(IllegalArgumentException.class))

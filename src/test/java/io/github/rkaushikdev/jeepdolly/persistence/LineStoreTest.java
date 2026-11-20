@@ -149,8 +149,8 @@ class LineStoreTest {
     @Test
     void theOwnerRowCarriesItsWiresForACascade() {
         seed(List.of(aCrossing()));
-        // Hibernate keeps the owner row it was handed, which never listed the wire; the original
-        // loaded the collection on first touch. Reading the row back fresh is the same question.
+        // Hibernate keeps the owner row it was handed, which never listed the wire,
+        // so the row is read back fresh, which loads the collection from the table.
         db.clear();
         LineOwnerRow row = db.find(LineOwnerRow.class, "CMP");
         assertThat(row.getWires()).extracting(LineCrossingRow::getIdent).containsExactly("L-1");

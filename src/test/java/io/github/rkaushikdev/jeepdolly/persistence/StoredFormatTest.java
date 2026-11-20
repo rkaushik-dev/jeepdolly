@@ -37,24 +37,24 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Rows written the way the original stored them still read back as the same office.
+ * Rows stored in the schema's own encodings read back as the same office.
  *
- * <p>The original wrote through SQLAlchemy onto SQLite: enumerations as their short values, every
- * measure as a whole integer, money as cents, booleans as {@code 1} and {@code 0}, dates as ISO
- * text, times and timestamps with six places of fraction, and a curfew's days as weekday digits
- * with Monday as {@code 0}. Each row here is typed in by hand in exactly that shape, below the
- * entities, and read back up through the same books and stores the office decides with. The last
- * two tests are the controls: a row in a shape the original never wrote is refused rather than
- * read as something else.
+ * <p>The schema stores enumerations as their short values, every measure as a whole integer, money
+ * as cents, booleans as {@code 1} and {@code 0}, dates as ISO text, times and timestamps with six
+ * places of fraction, and a curfew's days as weekday digits with Monday as {@code 0}. An existing
+ * database holds its rows in exactly that shape. Each row here is typed in by hand in that shape,
+ * below the entities, and read back up through the same books and stores the office decides with.
+ * The last two tests are the controls: a row in a shape the schema never holds is refused rather
+ * than read as something else.
  */
-class OriginalFormatTest {
+class StoredFormatTest {
 
     private static final LocalDate APRIL = LocalDate.of(2025, 4, 8);
 
     private Database database;
 
     @BeforeEach
-    void writeRowsTheWayTheOriginalDid() throws SQLException {
+    void writeRowsTheWayTheSchemaStoresThem() throws SQLException {
         database = Databases.empty();
         sql(
                 "insert into carriers (usdot, name, town, state, billing)"

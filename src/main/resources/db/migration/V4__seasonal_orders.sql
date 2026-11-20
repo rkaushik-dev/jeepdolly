@@ -1,7 +1,6 @@
 -- Seasonal orders, which used to be typed in by hand every spring.
 --
--- Ported from Alembic revision 0004, every table, column, index and constraint under the name the
--- original gave it.
+-- Every constraint and index is named by the schema's convention: pk_, uq_, ix_, fk_ and ck_.
 
 CREATE TABLE season_orders (
     number VARCHAR(32) NOT NULL,

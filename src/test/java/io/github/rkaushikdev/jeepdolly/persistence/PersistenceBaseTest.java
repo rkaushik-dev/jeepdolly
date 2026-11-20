@@ -95,7 +95,7 @@ class PersistenceBaseTest {
     }
 
     @Test
-    void aNullMeasureComesBackAsNoneRatherThanAZero() {
+    void aNullMeasureComesBackAsNullRatherThanAZero() {
         session.add(aRow("two"));
         session.commit();
         session.entityManager().clear();
@@ -107,8 +107,8 @@ class PersistenceBaseTest {
 
     @Test
     void thePrimaryKeyIsNamedAfterTheConvention() throws SQLException {
-        // The original read the name off the metadata's naming convention. Here the convention
-        // lives in the migrations, so every table they build is checked for a key named after it.
+        // The naming convention lives in the migrations, so every table they build is checked for
+        // a primary key named after it.
         Database database = Database.inMemory();
         opened.add(database);
         database.migrate();

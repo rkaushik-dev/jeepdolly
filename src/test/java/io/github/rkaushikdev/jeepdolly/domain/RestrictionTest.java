@@ -136,8 +136,7 @@ class RestrictionTest {
                 .isInstanceOf(Impossible.class);
         assertThatThrownBy(() -> new Curfew(WEEKDAYS, LocalTime.of(8, 30), LocalTime.of(6, 30)))
                 .isInstanceOf(Impossible.class);
-        // The original refused day 9 at run time. Here a curfew's days are days of the week by
-        // type, so a ninth day cannot be written down at all.
+        // A curfew's days are days of the week by type, so a ninth day cannot be written down.
         assertThat(Curfew.class.getRecordComponents()[0].getGenericType().getTypeName())
                 .isEqualTo("java.util.Set<java.time.DayOfWeek>");
     }

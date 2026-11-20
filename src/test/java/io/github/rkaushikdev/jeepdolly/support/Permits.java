@@ -15,7 +15,7 @@ import java.util.List;
  * An issued permit for an application, priced and conditioned the way the excavator move is.
  *
  * <p>A test that wants it with one thing different takes {@link #permit(Application)}, changes that
- * one field on the builder, and builds it, the way the original passed one keyword.
+ * one field on the builder, and builds it.
  */
 public final class Permits {
 

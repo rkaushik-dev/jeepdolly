@@ -1,7 +1,7 @@
 -- Citations off the roadside, which the office had kept on paper.
 --
--- Ported from Alembic revision 0009, every table, column, index and constraint under the name the
--- original gave it. Money is whole cents in BIGINT: citations.amount, citations.base.
+-- Every constraint and index is named by the schema's convention: pk_, uq_, ix_, fk_ and ck_. Money
+-- is whole cents in BIGINT: citations.amount, citations.base.
 
 CREATE TABLE citations (
     number VARCHAR(32) NOT NULL,

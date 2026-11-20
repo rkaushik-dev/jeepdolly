@@ -1,9 +1,8 @@
 -- The published tables, which used to live in the code.
 --
--- Ported from Alembic revision 0005, every table, column, index and constraint under the name the
--- original gave it. Money is whole cents in BIGINT: fee_base.amount, fee_per_mile.amount,
--- fee_schedules.amendment, fee_schedules.annual, fee_schedules.minimum, fee_schedules.review,
--- fee_weight_steps.per_block.
+-- Every constraint and index is named by the schema's convention: pk_, uq_, ix_, fk_ and ck_. Money
+-- is whole cents in BIGINT: fee_base.amount, fee_per_mile.amount, fee_schedules.amendment,
+-- fee_schedules.annual, fee_schedules.minimum, fee_schedules.review, fee_weight_steps.per_block.
 
 CREATE TABLE fee_base (
     effective DATE NOT NULL,

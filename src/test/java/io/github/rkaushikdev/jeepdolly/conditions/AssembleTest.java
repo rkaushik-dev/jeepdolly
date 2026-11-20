@@ -71,7 +71,7 @@ class AssembleTest {
         return sheet(load(), false, false, Optional.empty(), Optional.of(structures), 0);
     }
 
-    /** The conditions of one sheet, the way the original's helper built them. */
+    /** The conditions of one sheet, from the readings a test supplies. */
     private static List<Condition> sheet(
             Envelope envelope,
             boolean superload,

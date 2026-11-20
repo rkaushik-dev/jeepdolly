@@ -87,7 +87,7 @@ public final class UnitOfWork implements AutoCloseable {
     }
 
     /**
-     * Hand a new row to the persistence context, as the original's {@code session.add} did.
+     * Hand a new row to the persistence context; it is written at the next flush or commit.
      *
      * @throws IntegrityViolation when a row with the same key is already in this unit of work
      */

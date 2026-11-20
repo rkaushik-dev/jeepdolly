@@ -43,8 +43,7 @@ class MeasureTest {
 
     @Test
     void aSizeIsWholeInchesAndAFloatIsNotASize() {
-        // Inches(14.5) and Inches(True) were type errors at run time; in Java the only way in
-        // takes an int, so neither compiles.
+        // A fraction or a flag cannot be a size: the only way in takes an int.
         Signatures.constructorsTakeOnly(Inches.class, int.class);
     }
 
@@ -62,8 +61,8 @@ class MeasureTest {
         assertThat(Inches.of(8, 6).plus(new Inches(6))).isEqualTo(Inches.of(9));
         assertThat(Inches.of(9).minus(new Inches(6))).isEqualTo(Inches.of(8, 6));
         assertThat(new Inches(15).times(3)).isEqualTo(new Inches(45));
-        // Inches(96) + 6 and Inches(96) * 1.5 were type errors; the arithmetic takes only its own
-        // kind, and a count of whole things.
+        // A size never adds a bare number or multiplies by a fraction: the arithmetic takes only
+        // its own kind, and a count of whole things.
         Signatures.methodTakesOnly(Inches.class, "plus", Inches.class);
         Signatures.methodTakesOnly(Inches.class, "times", int.class);
     }
@@ -115,7 +114,7 @@ class MeasureTest {
 
     @Test
     void aWeightIsWholePounds() {
-        // Pounds(132400.5) was a type error at run time; the only way in takes an int.
+        // A fraction of a pound cannot be a weight: the only way in takes an int.
         Signatures.constructorsTakeOnly(Pounds.class, int.class);
     }
 
@@ -125,7 +124,7 @@ class MeasureTest {
         assertThat(new Pounds(34000).minus(new Pounds(20000))).isEqualTo(new Pounds(14000));
         assertThat(new Pounds(20000).times(4)).isEqualTo(new Pounds(80000));
         assertThat(new Pounds(500).negated()).isEqualTo(new Pounds(-500));
-        // Pounds(20000) + 500 was a type error; addition takes only another weight.
+        // A weight never adds a bare number: addition takes only another weight.
         Signatures.methodTakesOnly(Pounds.class, "plus", Pounds.class);
     }
 
@@ -156,7 +155,7 @@ class MeasureTest {
     void aDistanceWithMoreThanTwoPlacesIsNotOffTheRoadLog() {
         assertThatThrownBy(() -> Miles.parse("12.400")).isInstanceOf(Unreadable.class);
         assertThatThrownBy(() -> Miles.parse("twelve")).isInstanceOf(Unreadable.class);
-        // Miles(12.4) was a type error at run time; the only way in takes whole hundredths.
+        // A fraction of a hundredth cannot be a distance: the only way in takes whole hundredths.
         Signatures.constructorsTakeOnly(Miles.class, int.class);
     }
 

@@ -94,7 +94,7 @@ public record Office(
                 .numbering(numbering);
     }
 
-    /** The books of an office, named one at a time the way the original wired them by keyword. */
+    /** The books of an office, named one at a time, every one of them required. */
     public static final class Builder {
 
         private Network network;

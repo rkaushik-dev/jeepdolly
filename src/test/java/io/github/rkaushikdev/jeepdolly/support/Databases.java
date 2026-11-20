@@ -31,10 +31,10 @@ import java.util.List;
  * The suite's database: one H2 in memory, migrated once for the whole run and emptied before each
  * test that asks for it.
  *
- * <p>The original built and threw away an in memory SQLite database per test. Building a Hibernate
- * factory per test costs more than the tests do, so this keeps one database and one factory and
- * gives every test what the original did: the schema, and either nothing in it or the reference
- * rows every office is built from, with the serial keys counting from one.
+ * <p>Building a Hibernate factory per test costs more than the tests do, so this keeps one database
+ * and one factory and gives every test a database of its own in effect: the schema, and either
+ * nothing in it or the reference rows every office is built from, with the serial keys counting
+ * from one.
  */
 public final class Databases {
 

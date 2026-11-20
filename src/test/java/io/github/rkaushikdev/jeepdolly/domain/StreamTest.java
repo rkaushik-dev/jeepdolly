@@ -56,7 +56,7 @@ class StreamTest {
     }
 
     @Test
-    void askingAboutAnAxleThatIsNotThereIsAnIndexError() {
+    void askingAboutAnAxleThatIsNotThereIsOutOfBounds() {
         AxleStream stream = tractorLowboy();
         assertThatThrownBy(() -> stream.distance(0, 6)).isInstanceOf(IndexOutOfBoundsException.class);
         assertThatThrownBy(() -> stream.distance(4, 2)).isInstanceOf(IndexOutOfBoundsException.class);
