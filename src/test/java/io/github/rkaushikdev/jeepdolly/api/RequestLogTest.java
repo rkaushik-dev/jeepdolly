@@ -67,6 +67,45 @@ class RequestLogTest {
     }
 
     @Test
+    void aRefusalIsLoggedAtInfoBecauseItIsTheServiceWorking() {
+        client.get("/permits/25-P-999999");
+        String found = written();
+        assertThat(found).contains("status=404");
+        assertThat(found).doesNotContain("ERROR");
+    }
+
+    @Test
+    void thePermitNumberIsInThePathAndSoItIsInTheLine() {
+        client.get("/permits/25-P-999999");
+        assertThat(written()).contains("path=/permits/25-P-999999");
+    }
+
+    @Test
+    void theQueryStringNeverReachesTheLog() {
+        Bodies.file(client, Bodies.application());
+        String found = written();
+        assertThat(found).contains("path=/applications");
+        assertThat(found).doesNotContain("filed=2025-04-07");
+    }
+
+    @Test
+    void issuingWritesItsOwnLineWithTheThingsWorthGrepping() {
+        Bodies.issued(client);
+        String found = written();
+        assertThat(found).contains("permit.issued number=25-P-000001");
+        assertThat(found).contains("usdot=1204471");
+        assertThat(found).contains("gross=94000");
+        assertThat(found).contains("by=Supervisor");
+    }
+
+    @Test
+    void voidingWritesItsOwnLineToo() {
+        String number = Bodies.issued(client);
+        client.post("/permits/" + number + "/void?reason=load cancelled&on=2025-04-08");
+        assertThat(written()).contains("permit.voided number=" + number);
+    }
+
+    @Test
     void theKeyThatWasSentIsNeverInTheLog() {
         client.get("/health");
         String key = client.key().orElseThrow();

@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.github.rkaushikdev.jeepdolly.OfficeRules;
 import io.github.rkaushikdev.jeepdolly.Settings;
+import io.github.rkaushikdev.jeepdolly.api.routers.ApiRenewalsTest;
 import io.github.rkaushikdev.jeepdolly.enforcement.EnforcementBook;
 import io.github.rkaushikdev.jeepdolly.enforcement.Offence;
 import io.github.rkaushikdev.jeepdolly.enforcement.Standing;
@@ -27,6 +28,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @WebMvcTest
 @Import(TestService.class)
 class ApiSettingsTest {
+
+    private static final String RENEWALS = "/renewals?on=" + ApiRenewalsTest.NEAR;
 
     @Autowired
     private MockMvc mvc;
@@ -85,6 +88,38 @@ class ApiSettingsTest {
             JsonNode found = changed.get("/settings").json();
             assertThat(found.get("free_copies").asInt()).isEqualTo(5);
             assertThat(found.get("renewal_days").asInt()).isEqualTo(45);
+        }
+    }
+
+    @Test
+    void theRenewalWindowDefaultsToTheOfficeRule() {
+        ApiRenewalsTest.anAnnual(database);
+        String key = Clients.keysFor(database).get(Role.SUPERVISOR);
+        try (Running tight = serviceWith(OfficeRules.defaults().withRenewalDays(1));
+                Running wide = serviceWith(OfficeRules.defaults().withRenewalDays(60))) {
+            assertThat(tight.http().as(key).get(RENEWALS).json().size()).isZero();
+            assertThat(wide.http().as(key).get(RENEWALS).json().size()).isPositive();
+        }
+    }
+
+    @Test
+    void theWindowCanStillBeAskedForExplicitly() {
+        ApiRenewalsTest.anAnnual(database);
+        try (Running tight = serviceWith(OfficeRules.defaults().withRenewalDays(1))) {
+            Http clerk = Clients.keyed(tight.http(), database);
+            assertThat(clerk.get(RENEWALS + "&within=60").json().size()).isPositive();
+        }
+    }
+
+    @Test
+    void theLettersFollowTheSameWindow() {
+        ApiRenewalsTest.anAnnual(database);
+        try (Running wide = serviceWith(OfficeRules.defaults().withRenewalDays(60))) {
+            Http clerk = Clients.keyed(wide.http(), database);
+            assertThat(clerk.get("/renewals/letters?on=" + ApiRenewalsTest.NEAR)
+                            .json()
+                            .size())
+                    .isPositive();
         }
     }
 
