@@ -1,8 +1,11 @@
 package io.github.rkaushikdev.jeepdolly;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * How the office writes back what somebody wrote: quoted in a refusal, checked for being a number,
- * or capitalised as a place name.
+ * capitalised as a place name, or cut into the lines a file was typed in.
  *
  * <p>A refusal letter says {@code cannot read 'about fourteen feet' as a size}, with the hauler's
  * own words in quotes, so the hauler can see exactly what the office was handed. The quoting is
@@ -57,5 +60,42 @@ public final class Written {
             inWord = cased;
         }
         return out.toString();
+    }
+
+    /**
+     * The text cut into lines at every line boundary, the boundaries themselves left out.
+     *
+     * <p>A boundary is a line feed, a carriage return, the two together, a vertical tab, a form feed,
+     * the file, group and record separators, a next line, or the Unicode line and paragraph
+     * separators: whatever a text editor might have left at the end of a line in a file typed up by
+     * hand. A boundary at the very end does not start one more, empty, line, and empty text has no
+     * lines at all.
+     */
+    public static List<String> lines(String text) {
+        List<String> found = new ArrayList<>();
+        int start = 0;
+        int index = 0;
+        while (index < text.length()) {
+            char one = text.charAt(index);
+            if (!endsALine(one)) {
+                index++;
+                continue;
+            }
+            found.add(text.substring(start, index));
+            boolean pair = one == '\r' && index + 1 < text.length() && text.charAt(index + 1) == '\n';
+            index += pair ? 2 : 1;
+            start = index;
+        }
+        if (start < text.length()) {
+            found.add(text.substring(start));
+        }
+        return List.copyOf(found);
+    }
+
+    private static boolean endsALine(char one) {
+        return switch (one) {
+            case '\n', '\r', '\u000b', '\u000c', '\u001c', '\u001d', '\u001e', '\u0085', '\u2028', '\u2029' -> true;
+            default -> false;
+        };
     }
 }

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Warnings and worse go to standard error, and nothing else. The office's own log is pointed at
+     standard error, at info, by the command line unless it is told to be quiet. -->
+<configuration>
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.err</target>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} %msg%n</pattern>
+        </encoder>
+    </appender>
+    <!-- A row the database refuses comes back as an exception carrying the database's own sentence;
+         the same sentence logged first is noise. -->
+    <logger name="org.hibernate.engine.jdbc.spi.SqlExceptionHelper" level="OFF"/>
+    <root level="WARN">
+        <appender-ref ref="console"/>
+    </root>
+</configuration>

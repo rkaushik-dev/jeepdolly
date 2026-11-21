@@ -2,9 +2,10 @@ package io.github.rkaushikdev.jeepdolly;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** The three ways the office writes back what it was handed. */
+/** The ways the office writes back, and reads, what it was handed. */
 class WrittenTest {
 
     @Test
@@ -34,5 +35,18 @@ class WrittenTest {
         assertThat(Written.title("NEW PORTLAND")).isEqualTo("New Portland");
         assertThat(Written.title("route 2a")).isEqualTo("Route 2A");
         assertThat(Written.title("")).isEqualTo("");
+    }
+
+    @Test
+    void aFileIsCutIntoLinesAtEveryBoundaryAnEditorLeaves() {
+        assertThat(Written.lines("one\ntwo\r\nthree\rfour")).containsExactly("one", "two", "three", "four");
+        assertThat(Written.lines("a\u000bb\u000cc\u001cd\u001de\u001ef\u0085g\u2028h\u2029i"))
+                .containsExactly("a", "b", "c", "d", "e", "f", "g", "h", "i");
+        assertThat(Written.lines("one\n\ntwo\n")).containsExactly("one", "", "two");
+        assertThat(Written.lines("\n")).containsExactly("");
+        assertThat(Written.lines("\r\n\r\n")).containsExactly("", "");
+        assertThat(Written.lines("no boundary")).containsExactly("no boundary");
+        assertThat(Written.lines("")).isEqualTo(List.of());
+        assertThat(Written.lines("tab\tstays")).containsExactly("tab\tstays");
     }
 }

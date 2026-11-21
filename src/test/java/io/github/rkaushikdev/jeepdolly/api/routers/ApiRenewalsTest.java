@@ -8,6 +8,7 @@ import io.github.rkaushikdev.jeepdolly.api.Deps;
 import io.github.rkaushikdev.jeepdolly.api.Http;
 import io.github.rkaushikdev.jeepdolly.api.Role;
 import io.github.rkaushikdev.jeepdolly.api.TestService;
+import io.github.rkaushikdev.jeepdolly.cli.Console;
 import io.github.rkaushikdev.jeepdolly.domain.Envelope;
 import io.github.rkaushikdev.jeepdolly.permits.Annual;
 import io.github.rkaushikdev.jeepdolly.permits.Application;
@@ -19,19 +20,22 @@ import io.github.rkaushikdev.jeepdolly.persistence.ReferenceCache;
 import io.github.rkaushikdev.jeepdolly.persistence.UnitOfWork;
 import io.github.rkaushikdev.jeepdolly.support.Applications;
 import io.github.rkaushikdev.jeepdolly.support.Clients;
+import io.github.rkaushikdev.jeepdolly.support.Consoles;
+import io.github.rkaushikdev.jeepdolly.support.Consoles.Answer;
 import io.github.rkaushikdev.jeepdolly.support.Databases;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.web.servlet.MockMvc;
 
-/** The renewal run over the interface. */
+/** The renewal run over the interface and over the command line. */
 @WebMvcTest
 @Import(TestService.class)
 public class ApiRenewalsTest {
@@ -188,5 +192,70 @@ public class ApiRenewalsTest {
         String annual = anAnnual(database);
         Http.Answer answer = clients.get(Role.READER).postJson("/renewals/1204471?on=" + NEAR, renewing(annual));
         assertThat(answer.status()).isEqualTo(403);
+    }
+
+    /** The same run from a terminal in the back office. */
+    @Nested
+    class TheCommands {
+
+        private Console console;
+
+        @BeforeEach
+        void aConsoleOverTheSameDatabase() {
+            console = Consoles.over(database);
+        }
+
+        @Test
+        void theDueListPrintsOnePermitToALine() {
+            String number = anAnnual(database);
+            Answer answer = Consoles.call(console, "renewal", "due", "--day", NEAR);
+            assertThat(answer.exitCode()).isZero();
+            assertThat(answer.shown()).containsExactly(number + "  2026-01-05  21  Bickford Heavy Haul");
+        }
+
+        @Test
+        void aQuietWindowSaysSo() {
+            Answer answer = Consoles.call(console, "renewal", "due", "--day", "2025-06-01");
+            assertThat(answer.output().strip()).isEqualTo("nothing is due in that window");
+        }
+
+        @Test
+        void theMergeRowRunsTheNumbersTogether() {
+            String first = anAnnual(database, "25-04471", 1204471);
+            String second = anAnnual(database, "25-04472", 1204471);
+            Answer answer = Consoles.call(console, "renewal", "letters", "--day", NEAR);
+            assertThat(answer.shown())
+                    .containsExactly("1204471  Bickford Heavy Haul  2  2026-01-05  " + first + ";" + second);
+        }
+
+        @Test
+        void theLongFormPrintsTheLetterItself() {
+            anAnnual(database);
+            Answer answer = Consoles.call(console, "renewal", "letters", "--day", NEAR, "--long");
+            assertThat(answer.shown().get(0)).isEqualTo("Bickford Heavy Haul (1204471)");
+        }
+
+        @Test
+        void nobodyDueSaysSo() {
+            Answer answer = Consoles.call(console, "renewal", "letters", "--day", "2025-06-01");
+            assertThat(answer.output().strip()).isEqualTo("nobody is due a letter");
+        }
+
+        @Test
+        void renewingFromTheCommandLineIssuesAndReports() {
+            String number = anAnnual(database);
+            Answer answer = Consoles.call(console, "renewal", "renew", "1204471", number, "--on", NEAR);
+            assertThat(answer.exitCode()).isZero();
+            List<String> printed = answer.shown();
+            assertThat(printed.get(0)).startsWith("renewed  25-A-");
+            assertThat(printed.get(printed.size() - 1)).isEqualTo("1  renewed for  1204471");
+        }
+
+        @Test
+        void aRefusedBatchIsARefusalRatherThanATraceback() {
+            anAnnual(database);
+            Answer answer = Consoles.call(console, "renewal", "renew", "1204471", "25-A-999999", "--on", NEAR);
+            assertThat(answer.exitCode()).isNotZero();
+        }
     }
 }
