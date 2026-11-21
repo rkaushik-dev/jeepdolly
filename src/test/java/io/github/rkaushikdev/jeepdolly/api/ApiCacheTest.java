@@ -2,6 +2,7 @@ package io.github.rkaushikdev.jeepdolly.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.github.rkaushikdev.jeepdolly.OfficeRules;
 import io.github.rkaushikdev.jeepdolly.Settings;
 import io.github.rkaushikdev.jeepdolly.api.routers.ApplicationsController;
@@ -72,6 +73,60 @@ class ApiCacheTest {
         find(client);
         assertThat(cache.misses()).isEqualTo(1);
         assertThat(cache.hits()).isEqualTo(1);
+    }
+
+    /** The Fairfield village wire, with no survey day written down. */
+    private static Map<String, Object> aWire() {
+        return Bodies.map(
+                "ident",
+                "L-1",
+                "segment",
+                "US201-2",
+                "place",
+                "Fairfield village",
+                "height",
+                "19'",
+                "owner",
+                "CMP",
+                "lift_to",
+                "26'");
+    }
+
+    private static Map<String, Object> anOwner() {
+        return Bodies.map("ident", "CMP", "name", "Central Maine Power", "telephone", "207 555 0100");
+    }
+
+    @Test
+    void aRouteThatWritesAPublishedRowEmptiesIt() {
+        Http client = Clients.keyed(new Http(mvc), database);
+        find(client);
+        assertThat(cache.size()).isEqualTo(1);
+        client.postJson("/lines/owners", anOwner());
+        assertThat(cache.size()).isEqualTo(0);
+    }
+
+    @Test
+    void aRouteThatWritesAnApplicationLeavesItAlone() {
+        Http client = Clients.keyed(new Http(mvc), database);
+        find(client);
+        int filled = cache.size();
+        client.get("/citations/next-number?on=2025-04-08");
+        assertThat(cache.size()).isEqualTo(filled);
+    }
+
+    @Test
+    void aNewWireIsSeenByTheVeryNextRequest() {
+        Http client = Clients.keyed(new Http(mvc), database);
+        String query = "origin=waterville&segments=US201-1&segments=US201-2&height=20'&travel=2025-04-09";
+        JsonNode before =
+                client.get("/lines/clearance?" + query + "&filed=2025-03-01").json();
+        assertThat(before.get("lifts").isArray()).isTrue();
+        assertThat(before.get("lifts").size()).isZero();
+        client.postJson("/lines/owners", anOwner());
+        client.postJson("/lines", aWire());
+        JsonNode after =
+                client.get("/lines/clearance?" + query + "&filed=2025-03-01").json();
+        assertThat(after.get("lifts").size()).isEqualTo(1);
     }
 
     @Test

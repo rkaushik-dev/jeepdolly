@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.github.rkaushikdev.jeepdolly.Jeepdolly;
 import io.github.rkaushikdev.jeepdolly.Settings;
+import io.github.rkaushikdev.jeepdolly.api.routers.ServiceController;
 import io.github.rkaushikdev.jeepdolly.permits.Application;
 import io.github.rkaushikdev.jeepdolly.persistence.Database;
 import io.github.rkaushikdev.jeepdolly.persistence.ReferenceCache;
@@ -14,12 +15,22 @@ import io.github.rkaushikdev.jeepdolly.support.Databases;
 import io.github.rkaushikdev.jeepdolly.support.Permits;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 /** The routes about the service, which need no key at all. */
 @WebMvcTest
@@ -28,8 +39,18 @@ class ApiServiceTest {
 
     private static final String START = "2025-04-08";
 
+    /** The package every router lives in. */
+    private static final String ROUTERS = ServiceController.class.getPackageName();
+
     @Autowired
     private MockMvc mvc;
+
+    @Autowired
+    private ApplicationContext context;
+
+    @Autowired
+    @Qualifier("requestMappingHandlerMapping")
+    private RequestMappingHandlerMapping routes;
 
     @Autowired
     private ReferenceCache cache;
@@ -103,6 +124,29 @@ class ApiServiceTest {
         for (String path : List.of("/health", "/version", "/metrics", "/metrics.json")) {
             assertThat(client.get(path).status()).as(path).isEqualTo(200);
         }
+    }
+
+    /**
+     * Every router in the routers package is in the service, each exactly once, and the routes
+     * from three different ones are mapped.
+     */
+    @Test
+    void everyRouterIsRegisteredOnce() {
+        ClassPathScanningCandidateComponentProvider scanner = new ClassPathScanningCandidateComponentProvider(false);
+        scanner.addIncludeFilter(new AnnotationTypeFilter(RestController.class));
+        List<String> routers = scanner.findCandidateComponents(ROUTERS).stream()
+                .map(BeanDefinition::getBeanClassName)
+                .toList();
+        assertThat(routers).hasSize(17);
+        List<String> registered = context.getBeansWithAnnotation(RestController.class).values().stream()
+                .map(bean -> AopUtils.getTargetClass(bean).getName())
+                .filter(name -> name.startsWith(ROUTERS + "."))
+                .toList();
+        assertThat(registered).containsExactlyInAnyOrderElementsOf(routers);
+        Set<String> paths = routes.getHandlerMethods().keySet().stream()
+                .flatMap(info -> info.getPatternValues().stream())
+                .collect(Collectors.toSet());
+        assertThat(paths).contains("/health", "/permits/walk-in", "/applications/{reference}/assessment");
     }
 
     @Test
