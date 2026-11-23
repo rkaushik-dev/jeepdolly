@@ -15,7 +15,7 @@ import java.util.Comparator;
  *
  * @param position where the group stands in the stream, counted from zero
  */
-public record GroupFinding(int position, AxleGroup group, Pounds limit) {
+public record GroupFinding(int position, AxleGroup group, Pounds limit) implements Overage {
 
     /** The most the heaviest axle of a group may carry over the lightest, in percent of the lightest. */
     public static final int EQUALISED_PERCENT = 10;
@@ -25,12 +25,9 @@ public record GroupFinding(int position, AxleGroup group, Pounds limit) {
     }
 
     /** How far past the limit the group is, never below zero. */
+    @Override
     public Pounds over() {
         return weight().over(limit);
-    }
-
-    public boolean passes() {
-        return over().value() == 0;
     }
 
     /** The heaviest axle of the group less the lightest. */

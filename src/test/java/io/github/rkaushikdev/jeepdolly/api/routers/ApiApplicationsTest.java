@@ -10,9 +10,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.github.rkaushikdev.jeepdolly.api.Bodies;
 import io.github.rkaushikdev.jeepdolly.api.Http;
 import io.github.rkaushikdev.jeepdolly.api.TestService;
+import io.github.rkaushikdev.jeepdolly.domain.HighwayClass;
+import io.github.rkaushikdev.jeepdolly.limits.StatutoryBook;
+import io.github.rkaushikdev.jeepdolly.limits.WeightReading;
 import io.github.rkaushikdev.jeepdolly.persistence.ReferenceCache;
 import io.github.rkaushikdev.jeepdolly.support.Clients;
 import io.github.rkaushikdev.jeepdolly.support.Databases;
+import io.github.rkaushikdev.jeepdolly.support.Streams;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -159,6 +163,12 @@ class ApiApplicationsTest {
         assertThat(found.get("kind").asText()).isEqualTo("ordinary");
         assertThat(found.get("route").size()).isPositive();
         assertThat(found.get("fees").get("total").asText()).startsWith("$");
+        assertThat(found.get("overweight").isArray()).isTrue();
+        boolean charged = false;
+        for (JsonNode line : found.get("fees").get("lines")) {
+            charged |= line.get("description").asText().endsWith("over legal gross");
+        }
+        assertThat(found.get("overweight").isEmpty()).isEqualTo(!charged);
         assertThat(client.get("/applications/" + reference).json().get("state").asText())
                 .isEqualTo("draft");
     }
@@ -181,5 +191,15 @@ class ApiApplicationsTest {
         List<String> codes = new ArrayList<>();
         found.get("conditions").forEach(one -> codes.add(one.get("code").asText()));
         assertThat(codes).contains("T-01", "G-01");
+    }
+
+    @Test
+    void theOverweightFindingsLeadWithTheOneTheFeeIsPricedOn() {
+        WeightReading reading = WeightReading.read(
+                Streams.tractorLowboy(),
+                StatutoryBook.standard().on(HighwayClass.STATE_AID, StatutoryBook.STANDARD_EFFECTIVE));
+        List<String> found = ApplicationsController.overweight(reading);
+        assertThat(found.get(0)).isEqualTo(reading.governing().orElseThrow().toString());
+        assertThat(found).containsExactlyInAnyOrderElementsOf(reading.reasons());
     }
 }

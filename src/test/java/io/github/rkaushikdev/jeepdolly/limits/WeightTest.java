@@ -165,4 +165,41 @@ class WeightTest {
         assertThat(reading.tireFailures()).isEmpty();
         assertThat(reading.worstOverage()).isEqualTo(new Pounds(0));
     }
+
+    @Test
+    void theGoverningFindingIsTheOneFurthestOverAndTheCounterNamesIt() {
+        WeightReading reading = WeightReading.read(tractorLowboy(), table());
+        Overage governing = reading.governing().orElseThrow();
+        assertThat(governing).isInstanceOf(Finding.class);
+        assertThat(governing.over()).isEqualTo(reading.worstOverage());
+        assertThat(reading.toString()).isEqualTo("overweight, worst overage 16,500 lb on " + governing);
+        assertThat(WeightReading.read(legalSemi(), table()).governing()).isEmpty();
+        assertThat(WeightReading.read(legalSemi(), table())).hasToString("legal weight");
+    }
+
+    @Test
+    void theFailuresAreEveryRuleInLetterOrderAndOnlyTheOnesOver() {
+        WeightReading reading = WeightReading.read(sixAxles(), table());
+        assertThat(reading.failures()).first().isInstanceOf(GrossFinding.class);
+        assertThat(reading.failures()).allMatch(one -> !one.passes());
+        assertThat(reading.failures()).extracting(Overage::toString).isEqualTo(reading.reasons());
+        assertThat(reading.failures())
+                .hasSize(1
+                        + reading.groupFailures().size()
+                        + reading.formulaFailures().size()
+                        + reading.tireFailures().size());
+        assertThat(WeightReading.read(legalSemi(), table()).failures()).isEmpty();
+    }
+
+    @Test
+    void theGrossIsAFindingLikeTheOthers() {
+        GrossFinding over = new GrossFinding(new Pounds(104000), new Pounds(100000));
+        assertThat(over.over()).isEqualTo(new Pounds(4000));
+        assertThat(over.passes()).isFalse();
+        assertThat(over).hasToString("gross 104,000 lb is 4,000 lb over 100,000 lb");
+        assertThat(new GrossFinding(new Pounds(80000), new Pounds(100000)).passes())
+                .isTrue();
+        assertThat(WeightReading.read(sixAxles(), table()).grossFinding().over())
+                .isEqualTo(new Pounds(12000));
+    }
 }

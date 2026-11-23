@@ -6,11 +6,11 @@ import io.github.rkaushikdev.jeepdolly.domain.Axle;
 import io.github.rkaushikdev.jeepdolly.domain.AxleGroup;
 import io.github.rkaushikdev.jeepdolly.domain.AxleStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
+import java.util.stream.Stream;
 
 /**
  * Everything the weight rules say about one stream on one road.
@@ -69,7 +69,12 @@ public record WeightReading(
 
     /** How far the gross is past the gross limit, never below zero. */
     public Pounds grossOver() {
-        return gross.over(grossLimit);
+        return gross().over(grossLimit);
+    }
+
+    /** The gross against the gross limit, as a finding like the others. */
+    public GrossFinding grossFinding() {
+        return new GrossFinding(gross, grossLimit);
     }
 
     public List<GroupFinding> groupFailures() {
@@ -89,12 +94,18 @@ public record WeightReading(
         return tires.stream().filter(one -> !one.passes()).toList();
     }
 
+    /** Every finding that does not pass, in the order the letter prints them: gross, groups, formula, tires. */
+    public List<Overage> failures() {
+        return Stream.of(List.of(grossFinding()), groups, formula, tires)
+                .flatMap(List::stream)
+                .map(Overage.class::cast)
+                .filter(one -> !one.passes())
+                .toList();
+    }
+
     /** Whether any of the four rules finds the stream over. */
     public boolean overweight() {
-        return grossOver().value() != 0
-                || !groupFailures().isEmpty()
-                || !formulaFailures().isEmpty()
-                || !tireFailures().isEmpty();
+        return !failures().isEmpty();
     }
 
     public boolean legal() {
@@ -103,31 +114,27 @@ public record WeightReading(
 
     /** Every finding, in the order the letter prints them: the gross, groups, formula, tires. */
     public List<String> reasons() {
-        List<String> found = new ArrayList<>();
-        if (grossOver().value() != 0) {
-            found.add("gross " + gross + " is " + grossOver() + " over " + grossLimit);
-        }
-        groupFailures().forEach(one -> found.add(one.toString()));
-        formulaFailures().forEach(one -> found.add(one.toString()));
-        tireFailures().forEach(one -> found.add(one.toString()));
-        return List.copyOf(found);
+        return failures().stream().map(Overage::toString).toList();
+    }
+
+    /**
+     * The finding furthest over, the first of them on a tie, which is the one the fee is priced on
+     * and the one the counter reads out first. Nothing for a legal reading.
+     */
+    public Optional<Overage> governing() {
+        return failures().stream().max(Comparator.comparingInt(one -> one.over().value()));
     }
 
     /** The largest single overage, the first of them on a tie, which is what the fee is priced on. */
     public Pounds worstOverage() {
-        List<Pounds> amounts = new ArrayList<>();
-        amounts.add(grossOver());
-        groupFailures().forEach(one -> amounts.add(one.over()));
-        formulaFailures().forEach(one -> amounts.add(one.over()));
-        tireFailures().forEach(one -> amounts.add(one.over()));
-        return Collections.max(amounts, Comparator.comparingInt(Pounds::value));
+        return governing().map(Overage::over).orElse(Pounds.ZERO);
     }
 
+    /** As the counter says it: {@code overweight, worst overage 4,000 lb on group 3, tridem ...}. */
     @Override
     public String toString() {
-        if (legal()) {
-            return "legal weight";
-        }
-        return "overweight, worst overage " + worstOverage();
+        return governing()
+                .map(one -> "overweight, worst overage " + one.over() + " on " + one)
+                .orElse("legal weight");
     }
 }

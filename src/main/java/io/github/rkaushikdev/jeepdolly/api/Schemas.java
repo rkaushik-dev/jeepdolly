@@ -315,6 +315,8 @@ public final class Schemas {
      * What the office worked out, whether or not it can be permitted.
      *
      * @param distance the chargeable distance, when a route was found
+     * @param overweight every weight finding the load is over on, as the letter prints it, the one
+     *     the fee is priced on first; empty for a load at legal weight or one never weighed
      * @param fees the price, when the load can be permitted
      */
     public record AssessmentOut(
@@ -324,19 +326,30 @@ public final class Schemas {
             List<String> refusals,
             List<String> route,
             Optional<String> distance,
+            List<String> overweight,
             List<ConditionOut> conditions,
             Optional<QuoteOut> fees) {
 
         public AssessmentOut {
             refusals = List.copyOf(refusals);
             route = List.copyOf(route);
+            overweight = List.copyOf(overweight);
             conditions = List.copyOf(conditions);
         }
 
-        /** An assessment that stopped short of a distance, conditions or a price. */
+        /** An assessment that stopped short of a distance, a weighing, conditions or a price. */
         public AssessmentOut(
                 String reference, boolean permittable, String kind, List<String> refusals, List<String> route) {
-            this(reference, permittable, kind, refusals, route, Optional.empty(), List.of(), Optional.empty());
+            this(
+                    reference,
+                    permittable,
+                    kind,
+                    refusals,
+                    route,
+                    Optional.empty(),
+                    List.of(),
+                    List.of(),
+                    Optional.empty());
         }
     }
 }

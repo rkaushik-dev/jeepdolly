@@ -11,7 +11,7 @@ import java.util.Optional;
  * @param exception the rule that let the run through when the formula alone would not, so a report
  *     can say which rule it was
  */
-public record Finding(Span span, Pounds allowed, Optional<String> exception) {
+public record Finding(Span span, Pounds allowed, Optional<String> exception) implements Overage {
 
     /** A finding the formula decided on its own. */
     public Finding(Span span, Pounds allowed) {
@@ -23,12 +23,9 @@ public record Finding(Span span, Pounds allowed, Optional<String> exception) {
     }
 
     /** How far past what is allowed the run is, never below zero. */
+    @Override
     public Pounds over() {
         return weight().over(allowed);
-    }
-
-    public boolean passes() {
-        return over().value() == 0;
     }
 
     /** The run, the allowance and the verdict, as a refusal letter lists them. */

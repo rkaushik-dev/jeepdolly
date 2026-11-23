@@ -12,6 +12,7 @@ import io.github.rkaushikdev.jeepdolly.api.Schemas.AssessmentOut;
 import io.github.rkaushikdev.jeepdolly.api.Schemas.ConditionOut;
 import io.github.rkaushikdev.jeepdolly.api.Schemas.QuoteOut;
 import io.github.rkaushikdev.jeepdolly.api.Work;
+import io.github.rkaushikdev.jeepdolly.limits.WeightReading;
 import io.github.rkaushikdev.jeepdolly.permits.Application;
 import io.github.rkaushikdev.jeepdolly.permits.ApplicationState;
 import io.github.rkaushikdev.jeepdolly.permits.Assessment;
@@ -21,6 +22,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
@@ -149,6 +151,14 @@ public class ApplicationsController {
         });
     }
 
+    /** The findings the load is over on, the one the fee is priced on first, then the rest in letter order. */
+    static List<String> overweight(WeightReading reading) {
+        List<String> found = new ArrayList<>();
+        reading.governing().ifPresent(one -> found.add(one.toString()));
+        reading.reasons().stream().filter(one -> !found.contains(one)).forEach(found::add);
+        return List.copyOf(found);
+    }
+
     /** The assessment as it goes over the wire. */
     public static AssessmentOut shape(Application application, Assessment found) {
         return new AssessmentOut(
@@ -158,6 +168,7 @@ public class ApplicationsController {
                 found.refusals(),
                 found.itinerary().map(Itinerary::idents).orElse(List.of()),
                 found.itinerary().map(one -> one.distance().toString()),
+                found.weight().map(ApplicationsController::overweight).orElse(List.of()),
                 found.conditions().stream().map(ConditionOut::of).toList(),
                 found.quote().map(QuoteOut::of));
     }
