@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,6 +44,22 @@ public final class Windows {
     /** A load with a high centre stops when the wind reaches this. */
     public static final int WIND_HOLD_MPH = 30;
 
+    /** A load past the sail width or height stops at this, lower than a high centre does. */
+    public static final int SAIL_HOLD_MPH = 25;
+
+    /**
+     * The when table as published, in the order it is printed.
+     *
+     * <p>Width and height put a load in daylight. Past fourteen feet wide or fifteen high a load is
+     * also a sail: a crosswind that a tall van shrugs off lifts the downwind tires of a fourteen foot
+     * modular box, so it parks at a lighter wind than a load with a high centre of gravity does.
+     */
+    public static final List<WhenRule> RULES = List.of(
+            WhenRule.daylight("width", DAYLIGHT_WIDTH),
+            WhenRule.daylight("height", DAYLIGHT_HEIGHT),
+            WhenRule.wind("width", Inches.of(14), SAIL_HOLD_MPH),
+            WhenRule.wind("height", Inches.of(15), SAIL_HOLD_MPH));
+
     private static final LocalTime MIDNIGHT = LocalTime.of(0, 0);
     private static final LocalTime LAST_MINUTE = LocalTime.of(23, 59);
 
@@ -53,24 +70,36 @@ public final class Windows {
         return limitsFor(envelope, false, false);
     }
 
-    /** Read the when rules off the load. */
+    /**
+     * Read the when rules off the load.
+     *
+     * <p>The reasons are the daylight reasons, because that is what the planning screen explains. A
+     * load that several lines park in a wind parks at the lightest of them.
+     */
     public static TravelLimits limitsFor(Envelope envelope, boolean superload, boolean highCentre) {
         List<String> reasons = new ArrayList<>();
         boolean daylightOnly = false;
-        if (envelope.width().compareTo(DAYLIGHT_WIDTH) > 0) {
-            daylightOnly = true;
-            reasons.add("width over " + DAYLIGHT_WIDTH);
+        List<Integer> holds = new ArrayList<>();
+        if (highCentre) {
+            holds.add(WIND_HOLD_MPH);
         }
-        if (envelope.height().compareTo(DAYLIGHT_HEIGHT) > 0) {
-            daylightOnly = true;
-            reasons.add("height over " + DAYLIGHT_HEIGHT);
+        for (WhenRule rule : RULES) {
+            if (!rule.fires(envelope)) {
+                continue;
+            }
+            switch (rule.hold()) {
+                case DAYLIGHT -> {
+                    daylightOnly = true;
+                    reasons.add(rule.reason());
+                }
+                case WIND -> holds.add(rule.windMph());
+            }
         }
         if (superload) {
             daylightOnly = true;
             reasons.add("superload");
         }
-        return new TravelLimits(
-                daylightOnly, superload, highCentre ? Optional.of(WIND_HOLD_MPH) : Optional.empty(), reasons);
+        return new TravelLimits(daylightOnly, superload, holds.stream().min(Comparator.naturalOrder()), reasons);
     }
 
     /** What is left of one day with no curfew on the route. */

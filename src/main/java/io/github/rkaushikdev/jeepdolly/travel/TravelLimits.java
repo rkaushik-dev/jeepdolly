@@ -8,10 +8,12 @@ import java.util.Optional;
  * The when rules a load carries, whatever route it takes.
  *
  * <p>Width and height put a load in daylight. A superload adds the weekend. A high centre of
- * gravity adds a wind hold, which is not a time rule at all but rides with them because it belongs
- * on the same part of the permit.
+ * gravity adds a wind hold, and so does a load broad or tall enough to catch the wind like a sail;
+ * neither is a time rule at all, but they ride with them because they belong on the same part of
+ * the permit.
  *
- * @param windHoldMph the wind at which the load stops and parks, for a load with a high centre
+ * @param windHoldMph the wind at which the load stops and parks, the lightest of the holds that
+ *     apply, for a load with a high centre or a load that is a sail
  * @param reasons why the load is held to daylight, in the order they were found
  */
 public record TravelLimits(

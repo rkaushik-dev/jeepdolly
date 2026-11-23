@@ -11,6 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.rkaushikdev.jeepdolly.Impossible;
+import io.github.rkaushikdev.jeepdolly.Inches;
 import io.github.rkaushikdev.jeepdolly.PermitCalendar;
 import io.github.rkaushikdev.jeepdolly.domain.Curfew;
 import io.github.rkaushikdev.jeepdolly.domain.Envelope;
@@ -75,6 +76,50 @@ class WindowsTest {
         assertThat(limits.windHoldMph()).contains(30);
         assertThat(limits.daylightOnly()).isFalse();
         assertThat(limits.toString()).contains("hold above 30 mph wind");
+    }
+
+    @Test
+    void aBroadLoadIsASailAndParksInALighterWind() {
+        TravelLimits limits = Windows.limitsFor(wide("14'6"));
+        assertThat(limits.windHoldMph()).contains(25);
+        assertThat(limits.daylightOnly()).isTrue();
+        assertThat(limits.reasons()).containsExactly("width over 12 ft");
+        assertThat(limits).hasToString("daylight only, hold above 25 mph wind");
+        assertThat(Windows.limitsFor(wide("14'")).windHoldMph()).isEmpty();
+    }
+
+    @Test
+    void aTallLoadIsASailToo() {
+        assertThat(Windows.limitsFor(load("10'", "15'1")).windHoldMph()).contains(25);
+        assertThat(Windows.limitsFor(load("10'", "15'")).windHoldMph()).isEmpty();
+    }
+
+    @Test
+    void aHighCentreOnASailParksAtTheLighterOfTheTwo() {
+        TravelLimits limits = Windows.limitsFor(load("15'", "13'6"), false, true);
+        assertThat(limits.windHoldMph()).contains(Windows.SAIL_HOLD_MPH);
+        assertThat(Windows.limitsFor(load(), false, true).windHoldMph()).contains(Windows.WIND_HOLD_MPH);
+    }
+
+    @Test
+    void theWhenTableIsItsLinesInPrintingOrder() {
+        assertThat(Windows.RULES)
+                .extracting(WhenRule::reason)
+                .containsExactly("width over 12 ft", "height over 14 ft 6 in", "width over 14 ft", "height over 15 ft");
+        assertThat(Windows.RULES)
+                .extracting(WhenRule::hold)
+                .containsExactly(
+                        WhenRule.Hold.DAYLIGHT, WhenRule.Hold.DAYLIGHT, WhenRule.Hold.WIND, WhenRule.Hold.WIND);
+    }
+
+    @Test
+    void aWhenLineThatContradictsItselfIsRefused() {
+        assertThatThrownBy(() -> new WhenRule("width", Inches.of(12), WhenRule.Hold.DAYLIGHT, 25))
+                .isInstanceOf(Impossible.class);
+        assertThatThrownBy(() -> new WhenRule("width", Inches.of(12), WhenRule.Hold.WIND, 0))
+                .isInstanceOf(Impossible.class);
+        assertThatThrownBy(() -> WhenRule.daylight("weight", Inches.of(12))).isInstanceOf(Impossible.class);
+        assertThatThrownBy(() -> WhenRule.daylight("width", Inches.ZERO)).isInstanceOf(Impossible.class);
     }
 
     @Test
