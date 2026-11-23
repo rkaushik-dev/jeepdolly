@@ -9,9 +9,10 @@ import java.util.Map;
  * The conditions of one permit, collected by code with the first facts.
  *
  * <p>A key is usually a library code and sometimes a code with a tail on it, written {@code
- * U-01/L-4}. The tail exists for the one condition that is printed more than once with different
- * facts each time: three line lifts are three conditions naming three places, and collecting them
- * by code alone would keep the first and quietly lose two.
+ * U-01/L-4}. The tail exists for the conditions that are printed more than once with different
+ * facts each time: three line lifts are three conditions naming three places, and two bridges the
+ * pilot cars hold traffic at are two, and collecting them by code alone would keep the first and
+ * quietly lose the rest. {@link #addAt} writes the tail so no caller has to.
  *
  * <p>The tail is dropped when the library is asked for the wording. Nothing else in the system sees
  * it.
@@ -43,6 +44,11 @@ public final class Sheet {
         }
         codes.add(code);
         facts.put(code, new LinkedHashMap<>(given));
+    }
+
+    /** Add a condition once for each place it names, the place keeping it apart from the others. */
+    public void addAt(String code, String place, Map<String, ?> given) {
+        add(code + "/" + place, given);
     }
 
     /** Every condition on the sheet, worded and in printing order. */

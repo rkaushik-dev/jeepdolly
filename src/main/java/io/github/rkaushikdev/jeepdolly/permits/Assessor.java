@@ -62,10 +62,11 @@ import java.util.Optional;
  *
  * <p>The lines come after the structures because they are the same kind of finding read the other
  * way up, and because a hauler who is going to be refused for a bridge would rather hear about the
- * bridge and the wire in one letter. The pilot cars a hauler has named are read after the escort
- * table, because the table says how many are wanted and the naming is checked against that. A card
- * that is no good is a refusal even when the load would otherwise be fine, and naming nobody at all
- * is not.
+ * bridge and the wire in one letter. The escorts come after both, because a bridge crossed under
+ * conditions wants pilot cars to stop the traffic, so the escort table reads the structures as well
+ * as the load. The pilot cars a hauler has named are read after the escort table, because the table
+ * says how many are wanted and the naming is checked against that. A card that is no good is a
+ * refusal even when the load would otherwise be fine, and naming nobody at all is not.
  *
  * <p>Three of the steps are named methods rather than paragraphs of {@link #assess}, because they are
  * the three somebody reads on their own: whether the carrier is entitled to anything ({@link
@@ -195,7 +196,7 @@ public final class Assessor {
         refusals.addAll(lines.refusals());
 
         boolean superload = classification.kind() == PermitKind.SUPERLOAD;
-        Escorts escorts = EscortRules.STANDARD.required(envelope, itinerary.classes(), superload);
+        Escorts escorts = EscortRules.STANDARD.required(envelope, itinerary.classes(), superload, structures);
         Naming naming = Naming.check(office.escorts(), application.escortCards(), escorts, day);
         refusals.addAll(naming.refusals());
         Marking marking = Marking.forLoad(envelope, false, superload);

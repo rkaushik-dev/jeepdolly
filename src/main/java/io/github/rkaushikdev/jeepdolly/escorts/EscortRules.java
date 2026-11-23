@@ -4,6 +4,8 @@ import io.github.rkaushikdev.jeepdolly.Inches;
 import io.github.rkaushikdev.jeepdolly.domain.Envelope;
 import io.github.rkaushikdev.jeepdolly.domain.HighwayClass;
 import io.github.rkaushikdev.jeepdolly.escorts.EscortRule.Post;
+import io.github.rkaushikdev.jeepdolly.structures.StructureFinding;
+import io.github.rkaushikdev.jeepdolly.structures.StructureReading;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,6 +39,12 @@ import java.util.List;
  * sign bridge after it is resurfaced under, and a superload is a load the office has decided is
  * worth a week's notice whatever its height.
  *
+ * <p>A bridge the load crosses under conditions wants cars whatever the load measures. The
+ * condition is that the load is alone on the structure, and the only way to make that true on a
+ * public road is to stop the traffic: a car behind holds the following traffic back, and on a road
+ * with oncoming traffic a car in front holds that too. The reason names the structure, because
+ * the pilot driver has to know where to stop.
+ *
  * <p>The thresholds are published and change by order, so the table is a list of {@link
  * EscortRule} lines rather than constants in the arithmetic, read in the order it is printed. The
  * reasons come back in that order, one for each line the load is past, and two lines putting a car
@@ -69,6 +77,15 @@ public record EscortRules(List<EscortRule> rows) {
 
     /** Read the table for this load on these classes of road. A superload always has a trooper. */
     public Escorts required(Envelope envelope, List<HighwayClass> classes, boolean superload) {
+        return required(envelope, classes, superload, new StructureReading(List.of()));
+    }
+
+    /**
+     * Read the table for this load on these classes of road, and hold the traffic at every bridge
+     * the structure reading lets it cross only under conditions.
+     */
+    public Escorts required(
+            Envelope envelope, List<HighwayClass> classes, boolean superload, StructureReading structures) {
         boolean dividedOnly = !classes.isEmpty() && classes.stream().allMatch(HighwayClass::federal);
         int front = 0;
         int rear = 0;
@@ -91,6 +108,13 @@ public record EscortRules(List<EscortRule> rows) {
                 case SURVEY -> survey = true;
             }
             reasons.add(row.reason());
+        }
+        for (StructureFinding crossing : structures.conditional()) {
+            rear = 1;
+            if (!dividedOnly) {
+                front = 1;
+            }
+            reasons.add("hold traffic at " + crossing.structure().name());
         }
         if (superload) {
             police = true;

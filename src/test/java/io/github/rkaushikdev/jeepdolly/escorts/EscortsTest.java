@@ -1,13 +1,20 @@
 package io.github.rkaushikdev.jeepdolly.escorts;
 
+import static io.github.rkaushikdev.jeepdolly.support.RoadLog.roadLog;
+import static io.github.rkaushikdev.jeepdolly.support.Streams.make;
+import static io.github.rkaushikdev.jeepdolly.support.Structures.structureBook;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.rkaushikdev.jeepdolly.Impossible;
 import io.github.rkaushikdev.jeepdolly.Inches;
+import io.github.rkaushikdev.jeepdolly.domain.AxleStream;
 import io.github.rkaushikdev.jeepdolly.domain.Envelope;
 import io.github.rkaushikdev.jeepdolly.domain.HighwayClass;
 import io.github.rkaushikdev.jeepdolly.escorts.EscortRule.Post;
+import io.github.rkaushikdev.jeepdolly.routing.Itinerary;
+import io.github.rkaushikdev.jeepdolly.structures.Analysis;
+import io.github.rkaushikdev.jeepdolly.structures.StructureReading;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -240,5 +247,47 @@ class EscortsTest {
         assertThat(new Escorts(0, 0, false, false, true, List.of()).any()).isFalse();
         assertThat(new Escorts(0, 0, false, false, true, List.of())).hasToString("route survey");
         assertThat(new Escorts(0, 0, false, false)).hasToString("no escorts");
+    }
+
+    /** The middling lowboy over US 201, which crosses the Kennebec only under conditions. */
+    private static StructureReading kennebec() {
+        AxleStream middling = make(List.of(12000, 19000, 19000, 25000, 25000, 25000), List.of(200, 54, 180, 52, 52));
+        return Analysis.analyseRoute(
+                structureBook(), new Itinerary(roadLog(), "waterville", List.of("US201-1", "US201-2")), middling);
+    }
+
+    @Test
+    void aBridgeCrossedUnderConditionsHasTheTrafficHeldAtBothEnds() {
+        assertThat(kennebec().conditional()).hasSize(1);
+        Escorts escorts = TABLE.required(load(), ARTERIAL, false, kennebec());
+        assertThat(escorts.front()).isEqualTo(1);
+        assertThat(escorts.rear()).isEqualTo(1);
+        assertThat(escorts.police()).isFalse();
+        assertThat(escorts.reasons()).containsExactly("hold traffic at Kennebec River");
+    }
+
+    @Test
+    void onADividedHighwayOnlyTheFollowingTrafficIsHeld() {
+        Escorts escorts = TABLE.required(load(), INTERSTATE, false, kennebec());
+        assertThat(escorts.front()).isEqualTo(0);
+        assertThat(escorts.rear()).isEqualTo(1);
+        assertThat(escorts).hasToString("1 rear");
+    }
+
+    @Test
+    void aRouteWhoseBridgesAllClearWantsNobodyForThem() {
+        AxleStream light = make(List.of(12000, 14000, 14000), List.of(200, 54));
+        StructureReading clear = Analysis.analyseRoute(
+                structureBook(), new Itinerary(roadLog(), "waterville", List.of("US201-1", "US201-2")), light);
+        assertThat(clear.findings()).isNotEmpty();
+        assertThat(TABLE.required(load(), ARTERIAL, false, clear)).isEqualTo(TABLE.required(load(), ARTERIAL));
+    }
+
+    @Test
+    void theHeldTrafficComesAfterTheMeasuresAndBeforeTheSuperload() {
+        Escorts escorts = TABLE.required(wide("15'"), ARTERIAL, true, kennebec());
+        assertThat(escorts.reasons())
+                .containsExactly("width over 12 ft", "width over 14 ft", "hold traffic at Kennebec River", "superload");
+        assertThat(escorts.total()).isEqualTo(2);
     }
 }

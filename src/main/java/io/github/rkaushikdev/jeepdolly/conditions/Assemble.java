@@ -148,6 +148,7 @@ public final class Assemble {
         }
     }
 
+    /** The crossing conditions, and a line for the pilot cars holding the traffic at each bridge. */
     private static void structures(Sheet sheet, StructureReading structures) {
         for (StructureFinding finding : structures.findings()) {
             if (finding.verdict() != Verdict.CONDITIONAL) {
@@ -157,21 +158,21 @@ public final class Assemble {
             for (String code : List.of("S-01", "S-02", "S-03", "S-04")) {
                 sheet.add(code, Facts.of("structure", name));
             }
+            sheet.addAt("E-08", finding.structure().ident(), Facts.of("structure", name));
         }
     }
 
     /**
      * One condition per lift, and one saying not to leave without them.
      *
-     * <p>This is the one place a condition is added more than once, and it works because each lift
-     * carries a different place in its facts. The sheet collects by code and would keep only the
-     * first, so the code is made unique per place before it is added. That is a small lie told to
-     * the sheet and it is the alternative to a permit that names one of three lifts.
+     * <p>Each lift carries a different place in its facts, so each is added at its own crossing and
+     * the sheet keeps all of them rather than the first.
      */
     private static void lines(Sheet sheet, LineReading lines) {
         for (Lift lift : lines.lifts()) {
-            sheet.add(
-                    "U-01/" + lift.crossing().ident(),
+            sheet.addAt(
+                    "U-01",
+                    lift.crossing().ident(),
                     Facts.of(
                             "place",
                             lift.crossing().segment() + " at " + lift.crossing().place(),

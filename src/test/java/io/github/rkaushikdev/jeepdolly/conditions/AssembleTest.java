@@ -200,11 +200,36 @@ class AssembleTest {
     }
 
     @Test
+    void aStructureInTheMiddleBandHasThePilotCarsHoldTheTrafficOffIt() {
+        AxleStream stream = make(List.of(12000, 19000, 19000, 25000, 25000, 25000), List.of(200, 54, 180, 52, 52));
+        StructureReading reading = Analysis.analyseRoute(
+                structureBook(), new Itinerary(roadLog(), "waterville", List.of("US201-1", "US201-2")), stream);
+        Condition held = first(sheet(reading), "E-08");
+        assertThat(held.text()).isEqualTo("Pilot cars hold all traffic off Kennebec River while the load crosses.");
+        assertThat(held.category()).isSameAs(Category.ESCORT);
+    }
+
+    @Test
+    void aConditionAddedAtTwoPlacesIsKeptTwice() {
+        Sheet sheet = new Sheet(LIBRARY);
+        sheet.addAt("E-08", "1247", Map.of("structure", "Kennebec River"));
+        sheet.addAt("E-08", "5006", Map.of("structure", "Sandy River"));
+        sheet.addAt("E-08", "1247", Map.of("structure", "Kennebec River again"));
+        assertThat(sheet.codes()).containsExactly("E-08/1247", "E-08/5006");
+        assertThat(sheet.rendered())
+                .extracting(Condition::text)
+                .containsExactly(
+                        "Pilot cars hold all traffic off Kennebec River while the load crosses.",
+                        "Pilot cars hold all traffic off Sandy River while the load crosses.");
+    }
+
+    @Test
     void aStructureThatClearsPrintsNothingAboutItself() {
         AxleStream stream = make(List.of(12000, 14000, 14000), List.of(200, 54));
         StructureReading reading = Analysis.analyseRoute(
                 structureBook(), new Itinerary(roadLog(), "waterville", List.of("US201-1", "US201-2")), stream);
         assertThat(codes(sheet(reading))).noneMatch(one -> one.startsWith("S-"));
+        assertThat(codes(sheet(reading))).doesNotContain("E-08");
     }
 
     @Test
