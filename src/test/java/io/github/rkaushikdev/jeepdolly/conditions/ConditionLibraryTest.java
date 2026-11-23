@@ -18,7 +18,7 @@ class ConditionLibraryTest {
 
     @Test
     void theLibraryHoldsTheOfficeWordingUnderStableCodes() {
-        assertThat(LIBRARY.size()).isEqualTo(35);
+        assertThat(LIBRARY.size()).isEqualTo(36);
         assertThat(LIBRARY.contains("T-02")).isTrue();
         assertThat(LIBRARY.get("T-02").category()).isSameAs(Category.TRAVEL);
         assertThat(LIBRARY.get("T-02")).hasToString("T-02 (travel)");

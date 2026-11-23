@@ -198,6 +198,9 @@ public final class Assemble {
         if (escorts.police()) {
             sheet.add("E-04");
         }
+        if (escorts.survey()) {
+            sheet.add("E-07");
+        }
     }
 
     /** Who is piloting, or a line saying the office has not been told yet. */

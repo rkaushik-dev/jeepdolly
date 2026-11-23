@@ -32,6 +32,11 @@ import java.util.List;
  * projects ten feet past the bumper swings across the centre line on every curve before the cab
  * does, and the oncoming driver sees the cab.
  *
+ * <p>The tallest loads, and every superload, also want the route surveyed before the move. Past
+ * sixteen feet the clearance records are not to be trusted on their own, because nobody measures a
+ * sign bridge after it is resurfaced under, and a superload is a load the office has decided is
+ * worth a week's notice whatever its height.
+ *
  * <p>The thresholds are published and change by order, so the table is a list of {@link
  * EscortRule} lines rather than constants in the arithmetic, read in the order it is printed. The
  * reasons come back in that order, one for each line the load is past, and two lines putting a car
@@ -50,7 +55,8 @@ public record EscortRules(List<EscortRule> rows) {
             EscortRule.undivided("length", Inches.of(125), Post.FRONT),
             EscortRule.anyRoad("rear_overhang", Inches.of(10), Post.REAR),
             EscortRule.undivided("front_overhang", Inches.of(10), Post.FRONT),
-            EscortRule.anyRoad("height", Inches.of(14, 6), Post.POLE)));
+            EscortRule.anyRoad("height", Inches.of(14, 6), Post.POLE),
+            EscortRule.anyRoad("height", Inches.of(16), Post.SURVEY)));
 
     public EscortRules {
         rows = List.copyOf(rows);
@@ -68,6 +74,7 @@ public record EscortRules(List<EscortRule> rows) {
         int rear = 0;
         boolean police = false;
         boolean pole = false;
+        boolean survey = superload;
         List<String> reasons = new ArrayList<>();
         for (EscortRule row : rows) {
             if (!row.fires(envelope, dividedOnly)) {
@@ -81,6 +88,7 @@ public record EscortRules(List<EscortRule> rows) {
                     pole = true;
                 }
                 case POLICE -> police = true;
+                case SURVEY -> survey = true;
             }
             reasons.add(row.reason());
         }
@@ -88,6 +96,6 @@ public record EscortRules(List<EscortRule> rows) {
             police = true;
             reasons.add("superload");
         }
-        return new Escorts(front, rear, police, pole, reasons);
+        return new Escorts(front, rear, police, pole, survey, reasons);
     }
 }

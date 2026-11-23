@@ -4,19 +4,31 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * What a trip has to have with it: pilot cars front and rear, a height pole, a trooper.
+ * What a trip has to have with it: pilot cars front and rear, a height pole, a trooper, and for the
+ * biggest loads a route survey before any of them sets off.
  *
+ * <p>A survey is not an escort. It is somebody driving the route ahead of the move, a week ahead
+ * rather than a quarter mile, with a pole set to the load's height, writing down every wire, sign
+ * bridge and tree limb the clearance records do not know about. It goes on the escorts because the
+ * same pilot companies do it and the same table decides when it is wanted.
+ *
+ * @param survey the route is to be surveyed and the survey filed before the load moves
  * @param reasons why each escort is wanted, in the order the table read them
  */
-public record Escorts(int front, int rear, boolean police, boolean heightPole, List<String> reasons) {
+public record Escorts(int front, int rear, boolean police, boolean heightPole, boolean survey, List<String> reasons) {
 
     public Escorts {
         reasons = List.copyOf(reasons);
     }
 
-    /** Escorts with no reasons written down beside them. */
+    /** Escorts with no survey. */
+    public Escorts(int front, int rear, boolean police, boolean heightPole, List<String> reasons) {
+        this(front, rear, police, heightPole, false, reasons);
+    }
+
+    /** Escorts with no survey and no reasons written down beside them. */
     public Escorts(int front, int rear, boolean police, boolean heightPole) {
-        this(front, rear, police, heightPole, List.of());
+        this(front, rear, police, heightPole, false, List.of());
     }
 
     /** How many pilot cars, front and rear together. A trooper is not a pilot car. */
@@ -31,9 +43,6 @@ public record Escorts(int front, int rear, boolean police, boolean heightPole, L
 
     /** The lines that go on the permit face, in the order they are printed. */
     public List<String> conditions() {
-        if (!any()) {
-            return List.of();
-        }
         List<String> found = new ArrayList<>();
         if (front != 0) {
             String pole = heightPole ? " carrying a height pole set one inch above the load" : "";
@@ -45,13 +54,16 @@ public record Escorts(int front, int rear, boolean police, boolean heightPole, L
         if (police) {
             found.add("police escort, arranged by the carrier with the state police");
         }
+        if (survey) {
+            found.add("route surveyed with a height pole and the survey filed before the load moves");
+        }
         return List.copyOf(found);
     }
 
-    /** As the counter says it: {@code 1 front with height pole, 1 rear, police escort}. */
+    /** As the counter says it: {@code 1 front with height pole, 1 rear, police escort, route survey}. */
     @Override
     public String toString() {
-        if (!any()) {
+        if (!any() && !survey) {
             return "no escorts";
         }
         List<String> parts = new ArrayList<>();
@@ -63,6 +75,9 @@ public record Escorts(int front, int rear, boolean police, boolean heightPole, L
         }
         if (police) {
             parts.add("police escort");
+        }
+        if (survey) {
+            parts.add("route survey");
         }
         return String.join(", ", parts);
     }

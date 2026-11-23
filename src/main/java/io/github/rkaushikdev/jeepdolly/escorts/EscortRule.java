@@ -19,12 +19,16 @@ import io.github.rkaushikdev.jeepdolly.domain.Envelope;
  */
 public record EscortRule(String measure, Inches over, Post post, boolean undividedOnly) {
 
-    /** Where a line of the table puts somebody. A pole car is a front car with a height pole on it. */
+    /**
+     * Where a line of the table puts somebody. A pole car is a front car with a height pole on it,
+     * and a survey puts a pole car over the route before the move rather than with it.
+     */
     public enum Post {
         FRONT,
         REAR,
         POLE,
-        POLICE
+        POLICE,
+        SURVEY
     }
 
     public EscortRule {

@@ -50,6 +50,8 @@ public final class ConditionLibrary {
             new ConditionText("E-04", Category.ESCORT, "Police escort, arranged by the carrier.", 40),
             new ConditionText("E-05", Category.ESCORT, "Pilot cars for this move: {cards}.", 50),
             new ConditionText("E-06", Category.ESCORT, "Tell the office who is piloting before the load moves.", 60),
+            new ConditionText(
+                    "E-07", Category.ESCORT, "Survey the route with a height pole and file it before moving.", 70),
             new ConditionText("M-01", Category.MARKING, "OVERSIZE LOAD banners front and rear.", 10),
             new ConditionText(
                     "M-02", Category.MARKING, "{count} eighteen inch red flags on corners and widest points.", 20),

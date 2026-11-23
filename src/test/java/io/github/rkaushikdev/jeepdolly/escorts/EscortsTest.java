@@ -175,7 +175,7 @@ class EscortsTest {
 
     @Test
     void theTableIsItsLinesInPrintingOrder() {
-        assertThat(TABLE.rows()).hasSize(8);
+        assertThat(TABLE.rows()).hasSize(9);
         assertThat(TABLE.rows().get(0)).isEqualTo(EscortRule.undivided("width", Inches.of(12), Post.FRONT));
         assertThat(TABLE.rows().stream().map(EscortRule::reason))
                 .containsExactly(
@@ -186,7 +186,8 @@ class EscortsTest {
                         "length over 125 ft",
                         "rear overhang over 10 ft",
                         "front overhang over 10 ft",
-                        "height over 14 ft 6 in");
+                        "height over 14 ft 6 in",
+                        "height over 16 ft");
     }
 
     @Test
@@ -209,5 +210,35 @@ class EscortsTest {
                 .hasMessageContaining("weight");
         assertThatThrownBy(() -> EscortRule.anyRoad("width", Inches.ZERO, Post.REAR))
                 .isInstanceOf(Impossible.class);
+    }
+
+    @Test
+    void pastSixteenFeetHighTheRouteIsSurveyedFirst() {
+        Escorts escorts = TABLE.required(tall("16'2"), INTERSTATE);
+        assertThat(escorts.survey()).isTrue();
+        assertThat(escorts.heightPole()).isTrue();
+        assertThat(escorts.reasons()).containsExactly("height over 14 ft 6 in", "height over 16 ft");
+        assertThat(escorts).hasToString("1 front with height pole, route survey");
+        assertThat(escorts.conditions())
+                .last()
+                .isEqualTo("route surveyed with a height pole and the survey filed before the load moves");
+        assertThat(TABLE.required(tall("16'"), INTERSTATE).survey()).isFalse();
+    }
+
+    @Test
+    void aSuperloadIsSurveyedWhateverItsHeight() {
+        Escorts escorts = TABLE.required(load(), ARTERIAL, true);
+        assertThat(escorts.survey()).isTrue();
+        assertThat(escorts.total()).isEqualTo(0);
+        assertThat(escorts).hasToString("police escort, route survey");
+        assertThat(escorts.conditions()).hasSize(2);
+    }
+
+    @Test
+    void escortsWrittenWithoutASurveyHaveNone() {
+        assertThat(new Escorts(1, 1, false, false).survey()).isFalse();
+        assertThat(new Escorts(0, 0, false, false, true, List.of()).any()).isFalse();
+        assertThat(new Escorts(0, 0, false, false, true, List.of())).hasToString("route survey");
+        assertThat(new Escorts(0, 0, false, false)).hasToString("no escorts");
     }
 }

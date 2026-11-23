@@ -141,6 +141,14 @@ class AssembleTest {
         assertThat(Collections.frequency(printed, "T-02")).isEqualTo(1);
         assertThat(printed).contains("T-03");
         assertThat(printed).contains("E-04");
+        assertThat(printed.indexOf("E-04")).isLessThan(printed.indexOf("E-07"));
+    }
+
+    @Test
+    void aSurveyedLoadPrintsTheSurveyAfterItsEscorts() {
+        Condition survey = first(superload(load("13'")), "E-07");
+        assertThat(survey.text()).isEqualTo("Survey the route with a height pole and file it before moving.");
+        assertThat(codes(sheet(load("13'")))).doesNotContain("E-07");
     }
 
     @Test
