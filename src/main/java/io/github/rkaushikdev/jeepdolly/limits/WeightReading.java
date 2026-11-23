@@ -76,6 +76,11 @@ public record WeightReading(
         return groups.stream().filter(one -> !one.passes()).toList();
     }
 
+    /** The groups whose axles do not share the load evenly, in stream order. */
+    public List<GroupFinding> unequalGroups() {
+        return groups.stream().filter(one -> !one.equalised()).toList();
+    }
+
     public List<Finding> formulaFailures() {
         return formula.stream().filter(one -> !one.passes()).toList();
     }

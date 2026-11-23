@@ -64,6 +64,31 @@ class WeightTest {
     }
 
     @Test
+    void aGroupSharesItsLoadWhenNoAxleIsTenPercentOverTheLightest() {
+        AxleStream stream = make(List.of(12000, 17000, 18700, 15000, 16000, 16600), List.of(200, 54, 180, 52, 52));
+        WeightReading reading = WeightReading.read(stream, table());
+        GroupFinding steer = reading.groups().get(0);
+        GroupFinding drive = reading.groups().get(1);
+        GroupFinding trailer = reading.groups().get(2);
+        assertThat(steer.equalised()).isTrue();
+        assertThat(steer.spread()).isEqualTo(Pounds.ZERO);
+        assertThat(drive.spread()).isEqualTo(new Pounds(1700));
+        assertThat(drive.equalised()).isTrue();
+        assertThat(trailer.spread()).isEqualTo(new Pounds(1600));
+        assertThat(trailer.equalised()).isFalse();
+        assertThat(reading.unequalGroups()).containsExactly(trailer);
+    }
+
+    @Test
+    void anUnequalGroupIsNotOverweightOnThatAccount() {
+        AxleStream stream = make(List.of(12000, 17000, 17000, 10000, 16000, 16000), List.of(200, 54, 180, 52, 52));
+        WeightReading reading = WeightReading.read(stream, table());
+        assertThat(reading.unequalGroups()).hasSize(1);
+        assertThat(reading.groupFailures()).isEmpty();
+        assertThat(reading.reasons()).noneMatch(one -> one.contains("unequal"));
+    }
+
+    @Test
     void theGroupFindingReadsAsALineOfTheLetter() {
         WeightReading reading = WeightReading.read(tractorLowboy(), table(HighwayClass.STATE_AID));
         assertThat(reading.groupFailures().get(0))

@@ -97,6 +97,35 @@ class ClassifyTest {
     }
 
     @Test
+    void aPermitLoadOnAGroupThatIsNotSharingGoesToAnEngineer() {
+        AxleStream uneven = make(List.of(12000, 17000, 17000, 14000, 16000, 18000), List.of(200, 54, 180, 52, 52));
+        Classification verdict = Classification.classify(box("12'", "13'"), read(uneven), SIZE, BOOK.get("EXCV"));
+        assertThat(verdict.kind()).isSameAs(PermitKind.STUDY);
+        assertThat(verdict.reviewReasons()).containsExactly("unequal tridem");
+        assertThat(verdict).hasToString("study on unequal tridem");
+        assertThat(verdict)
+                .isEqualTo(Classification.study(SizeClass.ROUTINE, verdict.overweight(), List.of("unequal tridem")));
+    }
+
+    @Test
+    void theUnequalGroupsFollowTheMeasuresInTheReasons() {
+        AxleStream uneven = make(List.of(12000, 15000, 19000, 16000, 16000, 16000), List.of(200, 54, 180, 52, 52));
+        Classification verdict = Classification.classify(box("8'", "15'8"), read(uneven), SIZE, BOOK.get("EXCV"));
+        assertThat(verdict.reviewReasons()).containsExactly("height", "unequal tandem");
+        assertThat(Classification.reasonsForReview(box("8'", "15'8"), read(uneven), SIZE))
+                .isEqualTo(verdict.reviewReasons());
+    }
+
+    @Test
+    void aLegalLoadIsNotSentToAnEngineerForHowItsAxlesShare() {
+        AxleStream uneven = make(List.of(12000, 15000, 17000, 13000, 15000), List.of(200, 54, 324, 54));
+        Classification verdict = Classification.classify(box(), read(uneven), SIZE, BOOK.get("EXCV"));
+        assertThat(read(uneven).unequalGroups()).hasSize(2);
+        assertThat(verdict.kind()).isSameAs(PermitKind.NONE);
+        assertThat(verdict.reviewReasons()).isEmpty();
+    }
+
+    @Test
     void aDivisibleLoadGetsNothingHoweverBigTheNumbersAre() {
         Classification verdict =
                 Classification.classify(box("17'", "13'"), read(tractorLowboy()), SIZE, BOOK.get("GRVL"));
@@ -104,6 +133,9 @@ class ClassifyTest {
         assertThat(verdict.permittable()).isFalse();
         assertThat(verdict.refusal()).contains("GRVL could have been loaded to legal weight");
         assertThat(verdict).hasToString("no permit: GRVL could have been loaded to legal weight");
+        assertThat(verdict)
+                .isEqualTo(Classification.refused(
+                        SizeClass.REVIEW, verdict.overweight(), "GRVL could have been loaded to legal weight"));
     }
 
     @Test
