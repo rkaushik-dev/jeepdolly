@@ -14,12 +14,16 @@ import io.github.rkaushikdev.jeepdolly.Impossible;
 import io.github.rkaushikdev.jeepdolly.Pounds;
 import io.github.rkaushikdev.jeepdolly.domain.Envelope;
 import io.github.rkaushikdev.jeepdolly.domain.HighwayClass;
+import io.github.rkaushikdev.jeepdolly.domain.Restriction;
+import io.github.rkaushikdev.jeepdolly.domain.RestrictionBook;
+import io.github.rkaushikdev.jeepdolly.domain.RestrictionKind;
 import io.github.rkaushikdev.jeepdolly.enforcement.Account;
 import io.github.rkaushikdev.jeepdolly.enforcement.EnforcementBook;
 import io.github.rkaushikdev.jeepdolly.enforcement.Owed;
 import io.github.rkaushikdev.jeepdolly.enforcement.Standing;
 import io.github.rkaushikdev.jeepdolly.limits.WeightReading;
 import io.github.rkaushikdev.jeepdolly.routing.Itinerary;
+import io.github.rkaushikdev.jeepdolly.routing.Repair;
 import io.github.rkaushikdev.jeepdolly.routing.RouteReading;
 import io.github.rkaushikdev.jeepdolly.support.Carriers;
 import java.time.LocalDate;
@@ -139,5 +143,37 @@ class AssessStagesTest {
         assertThat(found.itinerary()).isEmpty();
         assertThat(found.conditions()).isEmpty();
         assertThat(found.quote()).isEmpty();
+    }
+
+    private static Office closing(String segment) {
+        RestrictionBook book = new RestrictionBook();
+        book.add(new Restriction("R-1", segment, RestrictionKind.CLOSURE, "bridge out"));
+        return office().restrictions(book).build();
+    }
+
+    @Test
+    void aBlockedWrittenRouteIsRefusedAndOfferedMendedRoundTheTrouble() {
+        Application written = application().route(ACROSS).build();
+        Assessment found = Assessor.assess(closing("SA148-1"), written, APRIL);
+        assertThat(found.permittable()).isFalse();
+        assertThat(found.refusals()).anyMatch(one -> one.startsWith("SA148-1 closure"));
+        Repair mended = found.repair().orElseThrow();
+        assertThat(mended.dropped()).containsExactly("US2-1", "SA148-1");
+        assertThat(mended.added()).containsExactly("SA148-2");
+        assertThat(mended.original().idents()).isEqualTo(ACROSS);
+    }
+
+    @Test
+    void aWrittenRouteWithNothingInTheWayIsNotMended() {
+        Assessment found =
+                Assessor.assess(anOffice(), application().route(ACROSS).build(), APRIL);
+        assertThat(found.repair()).isEmpty();
+    }
+
+    @Test
+    void aRouteTheRouterFoundIsNeverMended() {
+        Assessment found = Assessor.assess(closing("SA148-1"), anApplication(), APRIL);
+        assertThat(found.repair()).isEmpty();
+        assertThat(found.itinerary().orElseThrow().idents()).doesNotContain("SA148-1");
     }
 }

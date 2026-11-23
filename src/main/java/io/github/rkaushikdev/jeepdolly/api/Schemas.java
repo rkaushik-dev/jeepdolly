@@ -318,6 +318,8 @@ public final class Schemas {
      * @param overweight every weight finding the load is over on, as the letter prints it, the one
      *     the fee is priced on first; empty for a load at legal weight or one never weighed
      * @param fees the price, when the load can be permitted
+     * @param detour the written route mended round what blocks it, as the counter reads it out, when
+     *     the written route is blocked and a mend was found
      */
     public record AssessmentOut(
             String reference,
@@ -328,7 +330,8 @@ public final class Schemas {
             Optional<String> distance,
             List<String> overweight,
             List<ConditionOut> conditions,
-            Optional<QuoteOut> fees) {
+            Optional<QuoteOut> fees,
+            Optional<String> detour) {
 
         public AssessmentOut {
             refusals = List.copyOf(refusals);
@@ -349,6 +352,7 @@ public final class Schemas {
                     Optional.empty(),
                     List.of(),
                     List.of(),
+                    Optional.empty(),
                     Optional.empty());
         }
     }

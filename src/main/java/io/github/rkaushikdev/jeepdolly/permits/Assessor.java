@@ -22,10 +22,12 @@ import io.github.rkaushikdev.jeepdolly.limits.SizeTable;
 import io.github.rkaushikdev.jeepdolly.limits.StatutoryBook;
 import io.github.rkaushikdev.jeepdolly.limits.StatutoryTable;
 import io.github.rkaushikdev.jeepdolly.limits.WeightReading;
+import io.github.rkaushikdev.jeepdolly.routing.Detour;
 import io.github.rkaushikdev.jeepdolly.routing.Evaluate;
 import io.github.rkaushikdev.jeepdolly.routing.Itinerary;
 import io.github.rkaushikdev.jeepdolly.routing.Mileage;
 import io.github.rkaushikdev.jeepdolly.routing.Obstruction;
+import io.github.rkaushikdev.jeepdolly.routing.Repair;
 import io.github.rkaushikdev.jeepdolly.routing.RouteReading;
 import io.github.rkaushikdev.jeepdolly.routing.Search;
 import io.github.rkaushikdev.jeepdolly.routing.Select;
@@ -57,8 +59,10 @@ import java.util.Optional;
  * next, because a divisible load is refused before anybody walks a route. Then the route, either the
  * one written on the application or one the router finds. Then weight, which needs the route
  * because the limits differ by class of road. Then classification, which needs both. Then the
- * structures, the overhead lines, the escorts, the marking, the travel limits, and last the price,
- * because the price depends on the classification and the mileage.
+ * structures, the overhead lines, the escorts, the marking, the travel limits, and the price,
+ * because the price depends on the classification and the mileage. Last of all, a written route
+ * that something blocks is mended round it, so the refusal letter can offer the hauler his own
+ * route back with the broken part replaced.
  *
  * <p>The lines come after the structures because they are the same kind of finding read the other
  * way up, and because a hauler who is going to be refused for a bridge would rather hear about the
@@ -244,7 +248,38 @@ public final class Assessor {
                 Optional.of(limits),
                 Optional.of(mileage),
                 quote,
-                conditions);
+                conditions,
+                repairFor(office, application, itinerary, envelope, gross, day, route));
+    }
+
+    /**
+     * The route the hauler wrote, mended round whatever blocks it, when he wrote one and it is
+     * blocked. A route the router found is the router's best already and is not mended.
+     */
+    private static Optional<Repair> repairFor(
+            Office office,
+            Application application,
+            Itinerary itinerary,
+            Envelope envelope,
+            Pounds gross,
+            LocalDate day,
+            RouteReading route) {
+        if (application.route().isEmpty() || route.clear()) {
+            return Optional.empty();
+        }
+        return Detour.repair(
+                office.network(),
+                itinerary,
+                search(envelope, gross, day),
+                office.restrictions(),
+                office.seasons(),
+                office.statutes(),
+                office.turns());
+    }
+
+    /** What the router and the repair look for: this load, this day, leaving at {@link #DEPARTURE}. */
+    private static Search search(Envelope envelope, Pounds gross, LocalDate day) {
+        return new Search(envelope, gross, day).withDeparture(DEPARTURE);
     }
 
     /** The route written on the application, or the one the router finds when none was written. */
@@ -253,12 +288,11 @@ public final class Assessor {
         if (!application.route().isEmpty()) {
             return Optional.of(new Itinerary(office.network(), application.origin(), application.route()));
         }
-        Search search = new Search(envelope, gross, day).withDeparture(DEPARTURE);
         return Select.find(
                 office.network(),
                 application.origin(),
                 application.destination(),
-                search,
+                search(envelope, gross, day),
                 office.restrictions(),
                 office.seasons(),
                 office.statutes(),

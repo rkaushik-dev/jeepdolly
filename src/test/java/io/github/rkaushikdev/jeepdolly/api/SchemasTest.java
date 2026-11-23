@@ -219,6 +219,8 @@ class SchemasTest {
                 "25-04471", false, "none", List.of("GRVL could have been loaded to legal weight"), List.of());
         assertThat(out.fees()).isEmpty();
         assertThat(out.conditions()).isEmpty();
+        assertThat(out.overweight()).isEmpty();
+        assertThat(out.detour()).isEmpty();
         assertThat(out.refusals().get(0)).startsWith("GRVL");
     }
 }

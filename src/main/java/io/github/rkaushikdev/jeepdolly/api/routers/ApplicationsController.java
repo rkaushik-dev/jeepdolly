@@ -17,6 +17,7 @@ import io.github.rkaushikdev.jeepdolly.permits.Application;
 import io.github.rkaushikdev.jeepdolly.permits.ApplicationState;
 import io.github.rkaushikdev.jeepdolly.permits.Assessment;
 import io.github.rkaushikdev.jeepdolly.routing.Itinerary;
+import io.github.rkaushikdev.jeepdolly.routing.Repair;
 import io.github.rkaushikdev.jeepdolly.services.Counter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -170,6 +171,7 @@ public class ApplicationsController {
                 found.itinerary().map(one -> one.distance().toString()),
                 found.weight().map(ApplicationsController::overweight).orElse(List.of()),
                 found.conditions().stream().map(ConditionOut::of).toList(),
-                found.quote().map(QuoteOut::of));
+                found.quote().map(QuoteOut::of),
+                found.repair().map(Repair::toString));
     }
 }
