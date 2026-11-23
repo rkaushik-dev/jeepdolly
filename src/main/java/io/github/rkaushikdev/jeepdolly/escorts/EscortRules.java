@@ -30,6 +30,10 @@ import java.util.List;
  * ordered through a different office, so the permit says one is required and does not pretend to
  * have arranged it.
  *
+ * <p>Past eighteen feet wide on a road with oncoming traffic one car ahead is not enough: the load
+ * has the whole road, so the first car warns the oncoming traffic and the second, closer in, puts
+ * it on the shoulder and holds it there while the load goes by.
+ *
  * <p>A long front overhang wants a car in front for the same reason width does. A beam that
  * projects ten feet past the bumper swings across the centre line on every curve before the cab
  * does, and the oncoming driver sees the cab.
@@ -59,6 +63,7 @@ public record EscortRules(List<EscortRule> rows) {
             EscortRule.undivided("width", Inches.of(12), Post.FRONT),
             EscortRule.anyRoad("width", Inches.of(14), Post.REAR),
             EscortRule.anyRoad("width", Inches.of(16), Post.POLICE),
+            EscortRule.undivided("width", Inches.of(18), Post.FRONT, 2),
             EscortRule.anyRoad("length", Inches.of(100), Post.REAR),
             EscortRule.undivided("length", Inches.of(125), Post.FRONT),
             EscortRule.anyRoad("rear_overhang", Inches.of(10), Post.REAR),
@@ -98,10 +103,10 @@ public record EscortRules(List<EscortRule> rows) {
                 continue;
             }
             switch (row.post()) {
-                case FRONT -> front = 1;
-                case REAR -> rear = 1;
+                case FRONT -> front = Math.max(front, row.cars());
+                case REAR -> rear = Math.max(rear, row.cars());
                 case POLE -> {
-                    front = 1;
+                    front = Math.max(front, 1);
                     pole = true;
                 }
                 case POLICE -> police = true;

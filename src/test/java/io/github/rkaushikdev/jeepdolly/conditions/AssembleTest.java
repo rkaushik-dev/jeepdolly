@@ -136,6 +136,8 @@ class AssembleTest {
     void theEscortCountComesFromTheEscortTableAndIsNotReasonedAbout() {
         Condition front = first(sheet(load("15'")), "E-01");
         assertThat(front.text()).isEqualTo("1 certified pilot car ahead of the load.");
+        assertThat(first(sheet(load("19'")), "E-01").text()).isEqualTo("2 certified pilot cars ahead of the load.");
+        assertThat(first(sheet(load("19'")), "E-02").text()).isEqualTo("1 certified pilot car behind the load.");
     }
 
     @Test

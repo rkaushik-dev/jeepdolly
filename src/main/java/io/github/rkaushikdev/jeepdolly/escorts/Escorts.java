@@ -2,6 +2,7 @@ package io.github.rkaushikdev.jeepdolly.escorts;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * What a trip has to have with it: pilot cars front and rear, a height pole, a trooper, and for the
@@ -41,44 +42,44 @@ public record Escorts(int front, int rear, boolean police, boolean heightPole, b
         return total() != 0 || police;
     }
 
+    /** A count of pilot cars as the permit says it: {@code 1 certified pilot car}, {@code 2 certified pilot cars}. */
+    public static String cars(int count) {
+        return count + " certified pilot car" + (count == 1 ? "" : "s");
+    }
+
     /** The lines that go on the permit face, in the order they are printed. */
     public List<String> conditions() {
-        List<String> found = new ArrayList<>();
-        if (front != 0) {
-            String pole = heightPole ? " carrying a height pole set one inch above the load" : "";
-            found.add(front + " certified pilot car ahead of the load" + pole);
-        }
-        if (rear != 0) {
-            found.add(rear + " certified pilot car behind the load");
-        }
-        if (police) {
-            found.add("police escort, arranged by the carrier with the state police");
-        }
-        if (survey) {
-            found.add("route surveyed with a height pole and the survey filed before the load moves");
-        }
-        return List.copyOf(found);
+        return parts().stream().map(Map.Entry::getKey).toList();
     }
 
     /** As the counter says it: {@code 1 front with height pole, 1 rear, police escort, route survey}. */
     @Override
     public String toString() {
-        if (!any() && !survey) {
+        List<Map.Entry<String, String>> parts = parts();
+        if (parts.isEmpty()) {
             return "no escorts";
         }
-        List<String> parts = new ArrayList<>();
+        return String.join(", ", parts.stream().map(Map.Entry::getValue).toList());
+    }
+
+    /** Each thing the trip has with it, as the permit prints it and as the counter says it. */
+    private List<Map.Entry<String, String>> parts() {
+        List<Map.Entry<String, String>> found = new ArrayList<>();
         if (front != 0) {
-            parts.add(front + " front" + (heightPole ? " with height pole" : ""));
+            String pole = heightPole ? " carrying a height pole set one inch above the load" : "";
+            String spoken = heightPole ? " with height pole" : "";
+            found.add(Map.entry(cars(front) + " ahead of the load" + pole, front + " front" + spoken));
         }
         if (rear != 0) {
-            parts.add(rear + " rear");
+            found.add(Map.entry(cars(rear) + " behind the load", rear + " rear"));
         }
         if (police) {
-            parts.add("police escort");
+            found.add(Map.entry("police escort, arranged by the carrier with the state police", "police escort"));
         }
         if (survey) {
-            parts.add("route survey");
+            found.add(Map.entry(
+                    "route surveyed with a height pole and the survey filed before the load moves", "route survey"));
         }
-        return String.join(", ", parts);
+        return found;
     }
 }

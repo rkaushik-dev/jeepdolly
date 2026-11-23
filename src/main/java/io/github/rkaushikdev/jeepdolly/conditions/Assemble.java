@@ -204,10 +204,10 @@ public final class Assemble {
 
     private static void escorts(Sheet sheet, Escorts escorts) {
         if (escorts.front() != 0) {
-            sheet.add("E-01", Facts.of("count", escorts.front()));
+            sheet.add("E-01", Facts.of("cars", Escorts.cars(escorts.front())));
         }
         if (escorts.rear() != 0) {
-            sheet.add("E-02", Facts.of("count", escorts.rear()));
+            sheet.add("E-02", Facts.of("cars", Escorts.cars(escorts.rear())));
         }
         if (escorts.heightPole()) {
             sheet.add("E-03");

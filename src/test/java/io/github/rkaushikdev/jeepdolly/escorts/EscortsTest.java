@@ -182,13 +182,14 @@ class EscortsTest {
 
     @Test
     void theTableIsItsLinesInPrintingOrder() {
-        assertThat(TABLE.rows()).hasSize(9);
+        assertThat(TABLE.rows()).hasSize(10);
         assertThat(TABLE.rows().get(0)).isEqualTo(EscortRule.undivided("width", Inches.of(12), Post.FRONT));
         assertThat(TABLE.rows().stream().map(EscortRule::reason))
                 .containsExactly(
                         "width over 12 ft",
                         "width over 14 ft",
                         "width over 16 ft",
+                        "width over 18 ft",
                         "length over 100 ft",
                         "length over 125 ft",
                         "rear overhang over 10 ft",
@@ -289,5 +290,39 @@ class EscortsTest {
         assertThat(escorts.reasons())
                 .containsExactly("width over 12 ft", "width over 14 ft", "hold traffic at Kennebec River", "superload");
         assertThat(escorts.total()).isEqualTo(2);
+    }
+
+    @Test
+    void pastEighteenFeetWideTwoCarsGoAheadWhereThereIsOncomingTraffic() {
+        Escorts escorts = TABLE.required(wide("19'"), ARTERIAL);
+        assertThat(escorts.front()).isEqualTo(2);
+        assertThat(escorts.rear()).isEqualTo(1);
+        assertThat(escorts.total()).isEqualTo(3);
+        assertThat(escorts).hasToString("2 front, 1 rear, police escort");
+        assertThat(escorts.conditions().get(0)).isEqualTo("2 certified pilot cars ahead of the load");
+        assertThat(TABLE.required(wide("18'"), ARTERIAL).front()).isEqualTo(1);
+        assertThat(TABLE.required(wide("19'"), INTERSTATE).front()).isEqualTo(0);
+    }
+
+    @Test
+    void aSecondReasonForTheFrontNeverTakesACarAway() {
+        Escorts escorts = TABLE.required(load("19'", "15'", "130'", "0"), ARTERIAL);
+        assertThat(escorts.front()).isEqualTo(2);
+        assertThat(escorts.heightPole()).isTrue();
+        assertThat(escorts.conditions().get(0))
+                .isEqualTo(
+                        "2 certified pilot cars ahead of the load carrying a height pole set one inch above the load");
+    }
+
+    @Test
+    void theCountOfCarsReadsTheWayThePermitSaysIt() {
+        assertThat(Escorts.cars(1)).isEqualTo("1 certified pilot car");
+        assertThat(Escorts.cars(2)).isEqualTo("2 certified pilot cars");
+        assertThatThrownBy(() -> new EscortRule("width", Inches.of(18), Post.POLICE, false, 2))
+                .isInstanceOf(Impossible.class);
+        assertThatThrownBy(() -> EscortRule.undivided("width", Inches.of(18), Post.FRONT, 0))
+                .isInstanceOf(Impossible.class);
+        assertThat(EscortRule.undivided("width", Inches.of(18), Post.FRONT, 2).cars())
+                .isEqualTo(2);
     }
 }

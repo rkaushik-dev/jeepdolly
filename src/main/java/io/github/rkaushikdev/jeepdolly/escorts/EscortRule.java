@@ -16,8 +16,9 @@ import io.github.rkaushikdev.jeepdolly.domain.Envelope;
  * @param over the line fires for a load past this, not at it
  * @param post where the line puts somebody
  * @param undividedOnly the line does not fire on a trip that runs only on divided highway
+ * @param cars how many pilot cars a front or rear line puts there; one for every other line
  */
-public record EscortRule(String measure, Inches over, Post post, boolean undividedOnly) {
+public record EscortRule(String measure, Inches over, Post post, boolean undividedOnly, int cars) {
 
     /**
      * Where a line of the table puts somebody. A pole car is a front car with a height pole on it,
@@ -38,16 +39,24 @@ public record EscortRule(String measure, Inches over, Post post, boolean undivid
         if (over.value() <= 0) {
             throw new Impossible("an escort threshold is a size past nothing");
         }
+        if (cars < 1 || (cars > 1 && post != Post.FRONT && post != Post.REAR)) {
+            throw new Impossible("a line puts one car or more in front or behind, and one of anything else");
+        }
     }
 
     /** A line that fires on any road. */
     public static EscortRule anyRoad(String measure, Inches over, Post post) {
-        return new EscortRule(measure, over, post, false);
+        return new EscortRule(measure, over, post, false, 1);
     }
 
     /** A line that fires only where the trip meets oncoming traffic. */
     public static EscortRule undivided(String measure, Inches over, Post post) {
-        return new EscortRule(measure, over, post, true);
+        return undivided(measure, over, post, 1);
+    }
+
+    /** A line that puts {@code cars} pilot cars in one place where the trip meets oncoming traffic. */
+    public static EscortRule undivided(String measure, Inches over, Post post, int cars) {
+        return new EscortRule(measure, over, post, true, cars);
     }
 
     /** Whether this load, on a trip that is or is not divided highway throughout, is past the line. */
