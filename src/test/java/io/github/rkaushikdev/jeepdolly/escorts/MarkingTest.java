@@ -7,6 +7,7 @@ import io.github.rkaushikdev.jeepdolly.domain.HighwayClass;
 import io.github.rkaushikdev.jeepdolly.travel.TravelLimits;
 import io.github.rkaushikdev.jeepdolly.travel.Windows;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /** Banners, flags, lamps and beacons, and what the dark changes. */
@@ -119,7 +120,8 @@ class MarkingTest {
         assertThat(marking.lamps()).isEqualTo(2);
         assertThat(marking.roundTheClock()).isTrue();
         assertThat(marking.afterDark()).isFalse();
-        assertThat(marking).hasToString("2 oversize load banners, 2 flags, 2 lamps, 1 beacons");
+        assertThat(marking.redLamps()).isEqualTo(2);
+        assertThat(marking).hasToString("2 oversize load banners, 2 flags, 2 lamps, 2 red lamps, 1 beacons");
         assertThat(marking.conditions())
                 .contains("2 amber lamps at the same places, lit from sunset to sunrise")
                 .noneMatch(one -> one.contains("in place of flags"));
@@ -133,5 +135,38 @@ class MarkingTest {
         assertThat(marking.flags()).isEqualTo(2);
         assertThat(marking.lamps()).isEqualTo(2);
         assertThat(Marking.forTrip(load, interstate, true).beacons()).isEqualTo(2);
+    }
+
+    @Test
+    void afterDarkTheEndOfARearOverhangCarriesRedAsWellAsTheAmberCorners() {
+        Marking marking = Marking.forLoad(load("12'", "70'", "0", "14'"), true, false);
+        assertThat(marking.redLamps()).isEqualTo(2);
+        assertThat(marking.lamps()).isEqualTo(4);
+        assertThat(marking.count(Marking.Worn.RED_LAMPS)).isEqualTo(2);
+        assertThat(marking).hasToString("2 oversize load banners, 4 lamps, 2 red lamps, 1 beacons");
+        assertThat(marking.conditions())
+                .containsExactly(
+                        "2 OVERSIZE LOAD banners, one front and one rear, seven feet by eighteen inches",
+                        "4 amber lamps in place of flags, lit for the whole move",
+                        "2 red lamps at the extreme end of the rear overhang, lit after dark",
+                        "1 amber beacons on the power unit, visible from the rear");
+    }
+
+    @Test
+    void byDayAndForAFrontOverhangThereIsNoRedLamp() {
+        assertThat(Marking.forLoad(load("12'", "70'", "0", "14'")).redLamps()).isEqualTo(0);
+        assertThat(Marking.forLoad(load("12'", "70'", "6'", "0"), true, false).redLamps())
+                .isEqualTo(0);
+        assertThat(Marking.forLoad(load("12'", "70'", "0", "4'"), true, false).redLamps())
+                .isEqualTo(0);
+    }
+
+    @Test
+    void aMarkingWrittenByCountWearsOnlyWhatItCounts() {
+        Marking marking = new Marking(2, 0, 0, 1);
+        assertThat(marking.worn()).containsOnlyKeys(Marking.Worn.BANNERS, Marking.Worn.BEACONS);
+        assertThat(marking).isEqualTo(new Marking(Map.of(Marking.Worn.BANNERS, 2, Marking.Worn.BEACONS, 1), List.of()));
+        assertThat(new Marking(0, 0, 0, 0).any()).isFalse();
+        assertThat(new Marking(0, 0, 0, 0).conditions()).isEmpty();
     }
 }

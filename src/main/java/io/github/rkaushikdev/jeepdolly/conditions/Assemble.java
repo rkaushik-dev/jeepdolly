@@ -3,6 +3,7 @@ package io.github.rkaushikdev.jeepdolly.conditions;
 import io.github.rkaushikdev.jeepdolly.Facts;
 import io.github.rkaushikdev.jeepdolly.escorts.Escorts;
 import io.github.rkaushikdev.jeepdolly.escorts.Marking;
+import io.github.rkaushikdev.jeepdolly.escorts.Marking.Worn;
 import io.github.rkaushikdev.jeepdolly.escorts.Naming;
 import io.github.rkaushikdev.jeepdolly.routing.Obstruction;
 import io.github.rkaushikdev.jeepdolly.routing.RouteReading;
@@ -41,6 +42,10 @@ public final class Assemble {
 
     /** On every permit, whatever it is for. */
     public static final List<String> ALWAYS = List.of("R-01", "Q-01", "G-01", "G-02", "G-03");
+
+    /** The library line for each thing a load wears. */
+    private static final Map<Worn, String> MARKING = Map.of(
+            Worn.BANNERS, "M-01", Worn.FLAGS, "M-02", Worn.LAMPS, "M-03", Worn.RED_LAMPS, "M-06", Worn.BEACONS, "M-04");
 
     /** On every permit for each structure crossed under conditions, in printing order. */
     public static final List<String> CROSSING = List.of("S-01", "S-02", "S-03", "S-04");
@@ -225,20 +230,14 @@ public final class Assemble {
         }
     }
 
+    /**
+     * One line for each thing the load wears, the count in its facts. The lamps line reads one way
+     * when the lamps replace the flags and another when they ride beside them.
+     */
     private static void marking(Sheet sheet, Marking marking) {
-        if (marking.banners() != 0) {
-            sheet.add("M-01");
-        }
-        if (marking.flags() != 0) {
-            sheet.add("M-02", Facts.of("count", marking.flags()));
-        }
-        if (marking.roundTheClock()) {
-            sheet.add("M-05", Facts.of("count", marking.lamps()));
-        } else if (marking.lamps() != 0) {
-            sheet.add("M-03", Facts.of("count", marking.lamps()));
-        }
-        if (marking.beacons() != 0) {
-            sheet.add("M-04", Facts.of("count", marking.beacons()));
-        }
+        marking.worn().forEach((what, count) -> {
+            String code = what == Worn.LAMPS && marking.roundTheClock() ? "M-05" : MARKING.get(what);
+            sheet.add(code, Facts.of("count", count));
+        });
     }
 }

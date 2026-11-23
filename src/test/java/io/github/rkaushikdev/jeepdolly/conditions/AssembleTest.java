@@ -172,6 +172,16 @@ class AssembleTest {
     }
 
     @Test
+    void aRearOverhangAfterDarkPrintsItsRedLamps() {
+        Envelope envelope = Envelope.read("12'", "13'6", "80'", "0", "12'");
+        List<Condition> printed = sheet(envelope, false, true, Optional.empty(), Optional.empty(), 0);
+        assertThat(first(printed, "M-06").text()).isEqualTo("2 red lamps at the end of the rear overhang after dark.");
+        assertThat(codes(printed).indexOf("M-03")).isLessThan(codes(printed).indexOf("M-06"));
+        assertThat(codes(sheet(envelope, false, false, Optional.empty(), Optional.empty(), 0)))
+                .doesNotContain("M-06");
+    }
+
+    @Test
     void theNightMarkingReplacesTheFlagsLine() {
         List<String> printed = codes(sheet(load("13'"), false, true, Optional.empty(), Optional.empty(), 0));
         assertThat(printed).contains("M-03");

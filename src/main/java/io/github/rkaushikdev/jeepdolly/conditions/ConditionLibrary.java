@@ -67,6 +67,8 @@ public final class ConditionLibrary {
             new ConditionText(
                     "M-05", Category.MARKING, "{count} amber lamps beside the flags, lit from sunset to sunrise.", 35),
             new ConditionText(
+                    "M-06", Category.MARKING, "{count} red lamps at the end of the rear overhang after dark.", 37),
+            new ConditionText(
                     "Q-01", Category.EQUIPMENT, "Axle spacings as declared. Any change voids this permit.", 10),
             new ConditionText(
                     "Q-02", Category.EQUIPMENT, "All liftable axles down and carrying for the whole move.", 20),

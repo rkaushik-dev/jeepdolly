@@ -4,7 +4,10 @@ import io.github.rkaushikdev.jeepdolly.Inches;
 import io.github.rkaushikdev.jeepdolly.domain.Envelope;
 import io.github.rkaushikdev.jeepdolly.travel.TravelLimits;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Banners, flags, lamps and beacons: what the load has to wear for one trip.
@@ -25,8 +28,14 @@ import java.util.List;
  * the night, which since the interstate width line includes a thirteen foot excavator on I-95, is
  * on the road in both, so it wears the flags and carries the lamps lit from sunset, and the permit
  * says both.
+ *
+ * <p>The end of a rear overhang is the one place amber is not enough. After dark it carries red,
+ * the colour a following driver reads as the back of something, two lamps at the extreme end of the
+ * load, because the amber corner lamps are four feet ahead of where the load actually stops.
+ *
+ * @param worn how many of each thing the load wears, nothing for what it does not
  */
-public record Marking(int banners, int flags, int lamps, int beacons, List<String> reasons) {
+public record Marking(Map<Worn, Integer> worn, List<String> reasons) {
 
     /** Anything past this width wears a banner and flags. */
     public static final Inches LEGAL_WIDTH = Inches.of(8, 6);
@@ -37,8 +46,42 @@ public record Marking(int banners, int flags, int lamps, int beacons, List<Strin
     /** A projection past this gets its own flags. */
     public static final Inches FLAGGED_OVERHANG = Inches.of(4);
 
+    /** What a load wears, in the order the permit face and the counter both list it. */
+    public enum Worn {
+        BANNERS(
+                "oversize load banners",
+                "OVERSIZE LOAD banners, one front and one rear, seven feet by eighteen inches"),
+        FLAGS("flags", "eighteen inch red flags on the corners and widest points"),
+        LAMPS("lamps", "amber lamps in place of flags, lit for the whole move"),
+        RED_LAMPS("red lamps", "red lamps at the extreme end of the rear overhang, lit after dark"),
+        BEACONS("beacons", "amber beacons on the power unit, visible from the rear");
+
+        private final String spoken;
+        private final String printed;
+
+        Worn(String spoken, String printed) {
+            this.spoken = spoken;
+            this.printed = printed;
+        }
+    }
+
+    /** What the amber lamps line says when the flags are worn as well, by day. */
+    private static final String LAMPS_BESIDE_FLAGS = "amber lamps at the same places, lit from sunset to sunrise";
+
     public Marking {
+        Map<Worn, Integer> kept = new EnumMap<>(Worn.class);
+        worn.forEach((what, count) -> {
+            if (count != 0) {
+                kept.put(what, count);
+            }
+        });
+        worn = Collections.unmodifiableMap(kept);
         reasons = List.copyOf(reasons);
+    }
+
+    /** Marking by count, with the reasons written down beside it and no red lamps. */
+    public Marking(int banners, int flags, int lamps, int beacons, List<String> reasons) {
+        this(Map.of(Worn.BANNERS, banners, Worn.FLAGS, flags, Worn.LAMPS, lamps, Worn.BEACONS, beacons), reasons);
     }
 
     /** Marking with no reasons written down beside it. */
@@ -81,7 +124,8 @@ public record Marking(int banners, int flags, int lamps, int beacons, List<Strin
             corners += 2;
             reasons.add("front overhang");
         }
-        if (envelope.rearOverhang().compareTo(FLAGGED_OVERHANG) > 0) {
+        boolean projects = envelope.rearOverhang().compareTo(FLAGGED_OVERHANG) > 0;
+        if (projects) {
             corners += 2;
             reasons.add("rear overhang");
         }
@@ -93,44 +137,64 @@ public record Marking(int banners, int flags, int lamps, int beacons, List<Strin
         if (superload) {
             reasons.add("superload");
         }
-        return new Marking(banners, byDay ? corners : 0, afterDark ? corners : 0, beacons, reasons);
+        Map<Worn, Integer> worn = new EnumMap<>(Worn.class);
+        worn.put(Worn.BANNERS, banners);
+        worn.put(Worn.FLAGS, byDay ? corners : 0);
+        worn.put(Worn.LAMPS, afterDark ? corners : 0);
+        worn.put(Worn.RED_LAMPS, afterDark && projects ? 2 : 0);
+        worn.put(Worn.BEACONS, beacons);
+        return new Marking(worn, reasons);
+    }
+
+    /** How many of one thing the load wears. */
+    public int count(Worn what) {
+        return worn.getOrDefault(what, 0);
+    }
+
+    public int banners() {
+        return count(Worn.BANNERS);
+    }
+
+    public int flags() {
+        return count(Worn.FLAGS);
+    }
+
+    /** The amber lamps on the corners and widest points. */
+    public int lamps() {
+        return count(Worn.LAMPS);
+    }
+
+    /** The red lamps at the end of a rear overhang. */
+    public int redLamps() {
+        return count(Worn.RED_LAMPS);
+    }
+
+    public int beacons() {
+        return count(Worn.BEACONS);
     }
 
     /** Whether the load wears anything at all. */
     public boolean any() {
-        return banners != 0 || flags != 0 || lamps != 0 || beacons != 0;
+        return !worn.isEmpty();
     }
 
     /** Whether this is the night marking, with lamps in place of flags. */
     public boolean afterDark() {
-        return lamps != 0 && flags == 0;
+        return lamps() != 0 && flags() == 0;
     }
 
     /** Whether the load wears its flags by day and carries its lamps for after dark. */
     public boolean roundTheClock() {
-        return lamps != 0 && flags != 0;
+        return lamps() != 0 && flags() != 0;
     }
 
     /** The marking lines as they print on the permit face. */
     public List<String> conditions() {
-        if (!any()) {
-            return List.of();
-        }
         List<String> found = new ArrayList<>();
-        if (banners != 0) {
-            found.add(banners + " OVERSIZE LOAD banners, one front and one rear, seven feet by eighteen inches");
-        }
-        if (flags != 0) {
-            found.add(flags + " eighteen inch red flags on the corners and widest points");
-        }
-        if (roundTheClock()) {
-            found.add(lamps + " amber lamps at the same places, lit from sunset to sunrise");
-        } else if (lamps != 0) {
-            found.add(lamps + " amber lamps in place of flags, lit for the whole move");
-        }
-        if (beacons != 0) {
-            found.add(beacons + " amber beacons on the power unit, visible from the rear");
-        }
+        worn.forEach((what, count) -> {
+            String printed = what == Worn.LAMPS && roundTheClock() ? LAMPS_BESIDE_FLAGS : what.printed;
+            found.add(count + " " + printed);
+        });
         return List.copyOf(found);
     }
 
@@ -141,18 +205,7 @@ public record Marking(int banners, int flags, int lamps, int beacons, List<Strin
             return "no marking";
         }
         List<String> parts = new ArrayList<>();
-        if (banners != 0) {
-            parts.add(banners + " oversize load banners");
-        }
-        if (flags != 0) {
-            parts.add(flags + " flags");
-        }
-        if (lamps != 0) {
-            parts.add(lamps + " lamps");
-        }
-        if (beacons != 0) {
-            parts.add(beacons + " beacons");
-        }
+        worn.forEach((what, count) -> parts.add(count + " " + what.spoken));
         return String.join(", ", parts);
     }
 }
