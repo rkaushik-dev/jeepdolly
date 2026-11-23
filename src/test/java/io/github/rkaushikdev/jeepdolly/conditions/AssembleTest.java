@@ -19,9 +19,12 @@ import io.github.rkaushikdev.jeepdolly.escorts.Marking;
 import io.github.rkaushikdev.jeepdolly.limits.StatutoryBook;
 import io.github.rkaushikdev.jeepdolly.routing.Evaluate;
 import io.github.rkaushikdev.jeepdolly.routing.Itinerary;
+import io.github.rkaushikdev.jeepdolly.routing.Obstruction;
 import io.github.rkaushikdev.jeepdolly.routing.RouteReading;
 import io.github.rkaushikdev.jeepdolly.routing.TurnBook;
 import io.github.rkaushikdev.jeepdolly.structures.Analysis;
+import io.github.rkaushikdev.jeepdolly.structures.Structure;
+import io.github.rkaushikdev.jeepdolly.structures.StructureKind;
 import io.github.rkaushikdev.jeepdolly.structures.StructureReading;
 import io.github.rkaushikdev.jeepdolly.travel.Windows;
 import java.time.LocalDate;
@@ -287,6 +290,66 @@ class AssembleTest {
         List<String> printed = codes(sheet(cornerReading()));
         assertThat(printed.indexOf("R-05")).isLessThan(printed.indexOf("R-06"));
         assertThat(printed.indexOf("R-01")).isLessThan(printed.indexOf("R-05"));
+    }
+
+    /** A route reading by hand, carrying only the conditions a test names. */
+    private static RouteReading reading(Obstruction... conditions) {
+        return new RouteReading(APRIL, new Itinerary(roadLog(), "waterville", ACROSS), List.of(conditions));
+    }
+
+    private static Obstruction corner(String segment, String place, String allowed) {
+        return new Obstruction(segment, "tight corner", "the turn at " + place, "60 ft radius", allowed, false, place);
+    }
+
+    @Test
+    void twoTightCornersAreTwoStopTrafficConditions() {
+        List<Condition> printed = sheet(reading(
+                corner("US2-1", "skowhegan", "65 ft radius"), corner("SR43-1", "norridgewock", "62 ft radius")));
+        assertThat(printed.stream().filter(one -> one.code().equals("R-05")).map(Condition::text))
+                .containsExactly(
+                        "Stop traffic both ways to turn onto US2-1 at skowhegan.",
+                        "Stop traffic both ways to turn onto SR43-1 at norridgewock.");
+        assertThat(printed.stream().filter(one -> one.code().equals("R-06")).map(Condition::text))
+                .containsExactly(
+                        "The turn at skowhegan allows 65 ft radius. Walk it first.",
+                        "The turn at norridgewock allows 62 ft radius. Walk it first.");
+    }
+
+    @Test
+    void aCurfewAndAPostingOnEachOfTwoSegmentsArePrintedForBoth() {
+        List<Condition> printed = sheet(reading(
+                new Obstruction("US201-1", "curfew", "school", "travel outside the curfew", "07:00 to 08:30", false),
+                new Obstruction("US2-1", "curfew", "mill shift", "travel outside the curfew", "15:00 to 16:00", false),
+                new Obstruction("SA148-1", "posted season", "thaw under order 25-04", "94,000 lb", "61,100 lb", false),
+                new Obstruction("SR43-1", "posted season", "thaw under order 25-05", "94,000 lb", "58,500 lb", false)));
+        assertThat(printed.stream().filter(one -> one.code().equals("T-05")).map(Condition::text))
+                .containsExactly(
+                        "No movement on US201-1 between 07:00 to 08:30.",
+                        "No movement on US2-1 between 15:00 to 16:00.");
+        assertThat(printed.stream().filter(one -> one.code().equals("R-02")).map(Condition::text))
+                .containsExactly(
+                        "SA148-1 is posted at 61,100 lb while order 25-04 runs.",
+                        "SR43-1 is posted at 58,500 lb while order 25-05 runs.");
+    }
+
+    @Test
+    void twoBridgesInTheMiddleBandEachGetTheirFourCrossingConditions() {
+        AxleStream stream = make(List.of(12000, 19000, 19000, 25000, 25000, 25000), List.of(200, 54, 180, 52, 52));
+        Structure sebasticook = Structure.builder("7001", "Sebasticook River", "US2-1", StructureKind.of("bridge"))
+                .spansFeet(List.of(100))
+                .built(1958)
+                .operatingRating(new Pounds(130000))
+                .build();
+        StructureReading reading = Analysis.analyse(List.of(structureBook().get("1247"), sebasticook), stream);
+        assertThat(reading.conditional()).hasSize(2);
+        List<Condition> printed = sheet(reading);
+        assertThat(printed.stream().filter(one -> one.code().startsWith("S-"))).hasSize(8);
+        assertThat(printed.stream().filter(one -> one.code().equals("S-04")).map(Condition::text))
+                .containsExactly(
+                        "Do not stop on Kennebec River for any reason.",
+                        "Do not stop on Sebasticook River for any reason.");
+        assertThat(printed.stream().filter(one -> one.code().equals("E-08"))).hasSize(2);
+        assertThat(Assemble.CROSSING).containsExactly("S-01", "S-02", "S-03", "S-04");
     }
 
     @Test

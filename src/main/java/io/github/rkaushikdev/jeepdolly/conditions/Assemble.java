@@ -8,11 +8,11 @@ import io.github.rkaushikdev.jeepdolly.routing.Obstruction;
 import io.github.rkaushikdev.jeepdolly.routing.RouteReading;
 import io.github.rkaushikdev.jeepdolly.structures.StructureFinding;
 import io.github.rkaushikdev.jeepdolly.structures.StructureReading;
-import io.github.rkaushikdev.jeepdolly.structures.Verdict;
 import io.github.rkaushikdev.jeepdolly.travel.TravelLimits;
 import io.github.rkaushikdev.jeepdolly.utilities.Lift;
 import io.github.rkaushikdev.jeepdolly.utilities.LineReading;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -27,10 +27,10 @@ import java.util.Optional;
  * load that narrow, because the escort table has already thought about it and having the thinking
  * in two places is how the two places come to disagree.
  *
- * <p>A permit can only carry one of each code, so a route with two tight corners on it prints one
- * stop traffic condition naming the first. That is a known shortcoming of collecting by code and it
- * has not bitten yet, because a route with two of them is a route the counter has already
- * telephoned about.
+ * <p>A condition that names a place is printed once for every place it names. Two tight corners
+ * are two stop traffic conditions, two curfews on two segments are two lines, and two bridges in
+ * the middle band each get their four crossing conditions. Collecting those by code alone printed
+ * the first and lost the rest, which is the kind of mistake a driver finds at the second corner.
  *
  * <p>There is one piece of judgement and it is about duplication. Several rules can produce the same
  * condition: a superload is daylight only, and so is anything over twelve feet wide, and a permit
@@ -41,6 +41,9 @@ public final class Assemble {
 
     /** On every permit, whatever it is for. */
     public static final List<String> ALWAYS = List.of("R-01", "Q-01", "G-01", "G-02", "G-03");
+
+    /** On every permit for each structure crossed under conditions, in printing order. */
+    public static final List<String> CROSSING = List.of("S-01", "S-02", "S-03", "S-04");
 
     private Assemble() {}
 
@@ -117,28 +120,25 @@ public final class Assemble {
         });
     }
 
+    /** Every condition the route owns, once for each segment or corner it names. */
     private static void route(Sheet sheet, RouteReading route) {
         for (Obstruction trouble : route.conditions()) {
+            String segment = trouble.segment();
             switch (trouble.kind()) {
-                case "posted season" -> {
-                    String note = trouble.note();
-                    sheet.add(
+                case "posted season" ->
+                    sheet.addAt(
                             "R-02",
-                            Facts.of(
-                                    "segment",
-                                    trouble.segment(),
-                                    "limit",
-                                    trouble.allowed(),
-                                    "order",
-                                    note.substring(note.lastIndexOf(' ') + 1)));
-                }
-                case "curfew" -> sheet.add("T-05", Facts.of("segment", trouble.segment(), "curfew", trouble.allowed()));
+                            segment,
+                            Facts.of("segment", segment, "limit", trouble.allowed(), "order", orderOf(trouble)));
+                case "curfew" ->
+                    sheet.addAt("T-05", segment, Facts.of("segment", segment, "curfew", trouble.allowed()));
                 case "tight corner" -> {
                     // Both of these, and in this order. The first is what the driver has to do and
                     // the second is why, and an officer at the roadside reads the first one on its
                     // own.
-                    sheet.add("R-05", Facts.of("segment", trouble.segment(), "place", trouble.place()));
-                    sheet.add("R-06", Facts.of("place", trouble.place(), "allowed", trouble.allowed()));
+                    String place = trouble.place();
+                    sheet.addAt("R-05", place, Facts.of("segment", segment, "place", place));
+                    sheet.addAt("R-06", place, Facts.of("place", place, "allowed", trouble.allowed()));
                 }
                 default -> {
                     // Every other kind of condition on a route is printed by the rule that owns
@@ -148,17 +148,21 @@ public final class Assemble {
         }
     }
 
-    /** The crossing conditions, and a line for the pilot cars holding the traffic at each bridge. */
+    /** The thaw order a posted season names, which is the last word of its note. */
+    private static String orderOf(Obstruction posted) {
+        String note = posted.note();
+        return note.substring(note.lastIndexOf(' ') + 1);
+    }
+
+    /** The crossing conditions, and a line for the pilot cars holding the traffic, at each bridge. */
     private static void structures(Sheet sheet, StructureReading structures) {
-        for (StructureFinding finding : structures.findings()) {
-            if (finding.verdict() != Verdict.CONDITIONAL) {
-                continue;
+        for (StructureFinding finding : structures.conditional()) {
+            String ident = finding.structure().ident();
+            Map<String, ?> named = Facts.of("structure", finding.structure().name());
+            for (String code : CROSSING) {
+                sheet.addAt(code, ident, named);
             }
-            String name = finding.structure().name();
-            for (String code : List.of("S-01", "S-02", "S-03", "S-04")) {
-                sheet.add(code, Facts.of("structure", name));
-            }
-            sheet.addAt("E-08", finding.structure().ident(), Facts.of("structure", name));
+            sheet.addAt("E-08", ident, named);
         }
     }
 
