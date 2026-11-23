@@ -221,7 +221,9 @@ public final class Assemble {
         if (marking.flags() != 0) {
             sheet.add("M-02", Facts.of("count", marking.flags()));
         }
-        if (marking.lamps() != 0) {
+        if (marking.roundTheClock()) {
+            sheet.add("M-05", Facts.of("count", marking.lamps()));
+        } else if (marking.lamps() != 0) {
             sheet.add("M-03", Facts.of("count", marking.lamps()));
         }
         if (marking.beacons() != 0) {

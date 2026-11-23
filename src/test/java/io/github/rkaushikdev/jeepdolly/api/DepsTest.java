@@ -46,7 +46,7 @@ class DepsTest {
         Office office = Deps.officeFrom(work, APRIL);
         assertThat(office.commodities().size()).isEqualTo(17);
         assertThat(office.schedules().size()).isEqualTo(1);
-        assertThat(office.library().size()).isEqualTo(37);
+        assertThat(office.library().size()).isEqualTo(38);
         assertThat(office.numbering().issuedIn(2025)).isZero();
     }
 

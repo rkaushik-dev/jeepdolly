@@ -199,8 +199,8 @@ public final class Assessor {
         Escorts escorts = EscortRules.STANDARD.required(envelope, itinerary.classes(), superload, structures);
         Naming naming = Naming.check(office.escorts(), application.escortCards(), escorts, day);
         refusals.addAll(naming.refusals());
-        Marking marking = Marking.forLoad(envelope, false, superload);
         TravelLimits limits = Windows.limitsFor(envelope, superload, commodity.highCentre(), itinerary.classes());
+        Marking marking = Marking.forTrip(envelope, limits, superload);
         Mileage mileage = Mileage.chargeable(itinerary);
 
         Optional<Quote> quote = Optional.empty();

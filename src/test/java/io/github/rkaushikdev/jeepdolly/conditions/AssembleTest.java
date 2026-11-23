@@ -152,6 +152,23 @@ class AssembleTest {
     }
 
     @Test
+    void aLoadOnTheRoadDayAndNightPrintsTheFlagsAndTheLampsBesideThem() {
+        Envelope envelope = Envelope.read("8'", "13'6", "90'", "0", "6'");
+        List<Condition> printed = Assemble.assemble(
+                LIBRARY,
+                "2025-04-08",
+                "2025-04-12",
+                Windows.limitsFor(envelope),
+                EscortRules.STANDARD.required(envelope, List.of()),
+                Marking.forTrip(envelope, Windows.limitsFor(envelope), false));
+        assertThat(codes(printed)).contains("M-02", "M-05").doesNotContain("M-03");
+        assertThat(first(printed, "M-05").text())
+                .isEqualTo("2 amber lamps beside the flags, lit from sunset to sunrise.");
+        assertThat(codes(printed).indexOf("M-02")).isLessThan(codes(printed).indexOf("M-05"));
+        assertThat(codes(printed).indexOf("M-05")).isLessThan(codes(printed).indexOf("M-04"));
+    }
+
+    @Test
     void theNightMarkingReplacesTheFlagsLine() {
         List<String> printed = codes(sheet(load("13'"), false, true, Optional.empty(), Optional.empty(), 0));
         assertThat(printed).contains("M-03");
