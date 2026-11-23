@@ -3,7 +3,9 @@ package io.github.rkaushikdev.jeepdolly.limits;
 import static io.github.rkaushikdev.jeepdolly.support.Streams.make;
 import static io.github.rkaushikdev.jeepdolly.support.Streams.tractorLowboy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.rkaushikdev.jeepdolly.Impossible;
 import io.github.rkaushikdev.jeepdolly.Inches;
 import io.github.rkaushikdev.jeepdolly.Pounds;
 import io.github.rkaushikdev.jeepdolly.domain.AxleStream;
@@ -12,6 +14,7 @@ import io.github.rkaushikdev.jeepdolly.domain.Envelope;
 import io.github.rkaushikdev.jeepdolly.domain.HighwayClass;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /** The ladder: nothing, ordinary, study, superload, and the two things that beat it. */
@@ -127,6 +130,53 @@ class ClassifyTest {
         assertThat(ordinary.kind()).isSameAs(PermitKind.ORDINARY);
         assertThat(tightened.kind()).isSameAs(PermitKind.SUPERLOAD);
         assertThat(tightened.superloadReasons()).containsExactly("width");
+    }
+
+    @Test
+    void theAxleGroupThresholdRisesWithTheSizeOfTheGroup() {
+        Thresholds standard = Thresholds.STANDARD;
+        assertThat(standard.axleGroup(1)).isEqualTo(new Pounds(30000));
+        assertThat(standard.axleGroup(2)).isEqualTo(new Pounds(60000));
+        assertThat(standard.axleGroup(3)).isEqualTo(new Pounds(70000));
+        assertThat(standard.axleGroup(4)).isEqualTo(new Pounds(80000));
+        assertThat(standard.axleGroup(6)).isEqualTo(new Pounds(100000));
+        assertThatThrownBy(() -> standard.axleGroup(0)).isInstanceOf(Impossible.class);
+        assertThat(standard.size("height")).isEqualTo(Inches.of(16));
+        assertThat(standard.size("length")).isEqualTo(Inches.of(150));
+        assertThatThrownBy(() -> standard.size("rear_overhang"))
+                .isInstanceOf(Impossible.class)
+                .hasMessageContaining("rear_overhang");
+    }
+
+    @Test
+    void aHeavySingleIsASuperloadWhereTheSameWeightOnAQuadIsNot() {
+        AxleStream single = make(List.of(12000, 20000, 20000, 32000), List.of(200, 54, 300));
+        Classification heavy = Classification.classify(box(), read(single), SIZE, BOOK.get("XFMR"));
+        assertThat(heavy.kind()).isSameAs(PermitKind.SUPERLOAD);
+        assertThat(heavy.superloadReasons()).containsExactly("axle group");
+
+        AxleStream quad =
+                make(List.of(12000, 20000, 20000, 19000, 19000, 19000, 19000), List.of(200, 54, 300, 52, 52, 52));
+        Classification spread = Classification.classify(box(), read(quad), SIZE, BOOK.get("XFMR"));
+        assertThat(spread.kind()).isSameAs(PermitKind.ORDINARY);
+        assertThat(spread.superloadReasons()).isEmpty();
+    }
+
+    @Test
+    void aTableThatNamesOneNumberHoldsEveryGroupToIt() {
+        Thresholds flat =
+                new Thresholds(new Pounds(150000), new Pounds(60000), Inches.of(16), Inches.of(16), Inches.of(150));
+        assertThat(flat.axleGroup(1)).isEqualTo(new Pounds(60000));
+        assertThat(flat.axleGroup(4)).isEqualTo(new Pounds(60000));
+        assertThatThrownBy(() -> new Thresholds(
+                        new Pounds(150000),
+                        Map.of(2, new Pounds(60000)),
+                        Pounds.ZERO,
+                        Inches.of(16),
+                        Inches.of(16),
+                        Inches.of(150)))
+                .isInstanceOf(Impossible.class)
+                .hasMessageContaining("start at the single");
     }
 
     @Test
