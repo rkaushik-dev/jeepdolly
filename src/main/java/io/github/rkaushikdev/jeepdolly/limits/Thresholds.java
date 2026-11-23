@@ -4,6 +4,7 @@ import io.github.rkaushikdev.jeepdolly.Impossible;
 import io.github.rkaushikdev.jeepdolly.Inches;
 import io.github.rkaushikdev.jeepdolly.Pounds;
 import io.github.rkaushikdev.jeepdolly.domain.Envelope;
+import io.github.rkaushikdev.jeepdolly.domain.SizeLine;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -36,9 +37,6 @@ public record Thresholds(
             Inches.of(16),
             Inches.of(16),
             Inches.of(150));
-
-    /** The measures of the envelope a threshold is published for, in the order they are printed. */
-    public static final List<String> SIZES = List.of("width", "height", "length");
 
     public Thresholds {
         axleGroups = Collections.unmodifiableMap(new TreeMap<>(axleGroups));
@@ -75,12 +73,17 @@ public record Thresholds(
                 .anyMatch(one -> one.weight().compareTo(axleGroup(one.group().count())) > 0)) {
             found.add("axle group");
         }
-        for (String measure : SIZES) {
-            if (envelope.measure(measure).compareTo(size(measure)) > 0) {
-                found.add(measure);
+        for (SizeLine line : sizeLines()) {
+            if (line.past(envelope)) {
+                found.add(line.measure());
             }
         }
         return List.copyOf(found);
+    }
+
+    /** The size thresholds as lines, in the order they are printed. */
+    public List<SizeLine> sizeLines() {
+        return List.of(new SizeLine("width", width), new SizeLine("height", height), new SizeLine("length", length));
     }
 
     /**
@@ -89,11 +92,10 @@ public record Thresholds(
      * @throws Impossible for a measure the thresholds do not publish, such as an overhang
      */
     public Inches size(String measure) {
-        return switch (measure) {
-            case "width" -> width;
-            case "height" -> height;
-            case "length" -> length;
-            default -> throw new Impossible("no superload threshold is published for " + measure);
-        };
+        return sizeLines().stream()
+                .filter(line -> line.measure().equals(measure))
+                .findFirst()
+                .map(SizeLine::over)
+                .orElseThrow(() -> new Impossible("no superload threshold is published for " + measure));
     }
 }

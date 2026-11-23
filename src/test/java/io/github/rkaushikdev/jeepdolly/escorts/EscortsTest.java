@@ -11,6 +11,7 @@ import io.github.rkaushikdev.jeepdolly.Inches;
 import io.github.rkaushikdev.jeepdolly.domain.AxleStream;
 import io.github.rkaushikdev.jeepdolly.domain.Envelope;
 import io.github.rkaushikdev.jeepdolly.domain.HighwayClass;
+import io.github.rkaushikdev.jeepdolly.domain.SizeLine;
 import io.github.rkaushikdev.jeepdolly.escorts.EscortRule.Post;
 import io.github.rkaushikdev.jeepdolly.routing.Itinerary;
 import io.github.rkaushikdev.jeepdolly.structures.Analysis;
@@ -318,7 +319,7 @@ class EscortsTest {
     void theCountOfCarsReadsTheWayThePermitSaysIt() {
         assertThat(Escorts.cars(1)).isEqualTo("1 certified pilot car");
         assertThat(Escorts.cars(2)).isEqualTo("2 certified pilot cars");
-        assertThatThrownBy(() -> new EscortRule("width", Inches.of(18), Post.POLICE, false, 2))
+        assertThatThrownBy(() -> new EscortRule(new SizeLine("width", Inches.of(18)), Post.POLICE, false, 2))
                 .isInstanceOf(Impossible.class);
         assertThatThrownBy(() -> EscortRule.undivided("width", Inches.of(18), Post.FRONT, 0))
                 .isInstanceOf(Impossible.class);

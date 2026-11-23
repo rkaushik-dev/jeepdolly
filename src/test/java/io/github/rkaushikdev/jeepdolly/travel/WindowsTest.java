@@ -16,6 +16,7 @@ import io.github.rkaushikdev.jeepdolly.PermitCalendar;
 import io.github.rkaushikdev.jeepdolly.domain.Curfew;
 import io.github.rkaushikdev.jeepdolly.domain.Envelope;
 import io.github.rkaushikdev.jeepdolly.domain.HighwayClass;
+import io.github.rkaushikdev.jeepdolly.domain.SizeLine;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -118,9 +119,11 @@ class WindowsTest {
 
     @Test
     void aWhenLineThatContradictsItselfIsRefused() {
-        assertThatThrownBy(() -> new WhenRule("width", Inches.of(12), Inches.of(12), WhenRule.Hold.DAYLIGHT, 25))
+        assertThatThrownBy(() ->
+                        new WhenRule(new SizeLine("width", Inches.of(12)), Inches.of(12), WhenRule.Hold.DAYLIGHT, 25))
                 .isInstanceOf(Impossible.class);
-        assertThatThrownBy(() -> new WhenRule("width", Inches.of(12), Inches.of(12), WhenRule.Hold.WIND, 0))
+        assertThatThrownBy(
+                        () -> new WhenRule(new SizeLine("width", Inches.of(12)), Inches.of(12), WhenRule.Hold.WIND, 0))
                 .isInstanceOf(Impossible.class);
         assertThatThrownBy(() -> WhenRule.daylight("width", Inches.of(12), Inches.of(11)))
                 .isInstanceOf(Impossible.class)

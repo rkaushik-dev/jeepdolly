@@ -3,6 +3,7 @@ package io.github.rkaushikdev.jeepdolly.escorts;
 import io.github.rkaushikdev.jeepdolly.Impossible;
 import io.github.rkaushikdev.jeepdolly.Inches;
 import io.github.rkaushikdev.jeepdolly.domain.Envelope;
+import io.github.rkaushikdev.jeepdolly.domain.SizeLine;
 
 /**
  * One line of the escort table: a measure past a threshold puts somebody at one place on the move.
@@ -12,13 +13,12 @@ import io.github.rkaushikdev.jeepdolly.domain.Envelope;
  * traffic says so with {@code undividedOnly}, because on a divided highway there is no oncoming
  * traffic to warn.
  *
- * @param measure the measure of the envelope the line reads, as {@link Envelope#MEASURES} names it
- * @param over the line fires for a load past this, not at it
+ * @param line the measure and the size the line is drawn at
  * @param post where the line puts somebody
  * @param undividedOnly the line does not fire on a trip that runs only on divided highway
  * @param cars how many pilot cars a front or rear line puts there; one for every other line
  */
-public record EscortRule(String measure, Inches over, Post post, boolean undividedOnly, int cars) {
+public record EscortRule(SizeLine line, Post post, boolean undividedOnly, int cars) {
 
     /**
      * Where a line of the table puts somebody. A pole car is a front car with a height pole on it,
@@ -33,12 +33,6 @@ public record EscortRule(String measure, Inches over, Post post, boolean undivid
     }
 
     public EscortRule {
-        if (!Envelope.MEASURES.contains(measure)) {
-            throw new Impossible("an envelope has no " + measure);
-        }
-        if (over.value() <= 0) {
-            throw new Impossible("an escort threshold is a size past nothing");
-        }
         if (cars < 1 || (cars > 1 && post != Post.FRONT && post != Post.REAR)) {
             throw new Impossible("a line puts one car or more in front or behind, and one of anything else");
         }
@@ -46,7 +40,7 @@ public record EscortRule(String measure, Inches over, Post post, boolean undivid
 
     /** A line that fires on any road. */
     public static EscortRule anyRoad(String measure, Inches over, Post post) {
-        return new EscortRule(measure, over, post, false, 1);
+        return new EscortRule(new SizeLine(measure, over), post, false, 1);
     }
 
     /** A line that fires only where the trip meets oncoming traffic. */
@@ -56,19 +50,16 @@ public record EscortRule(String measure, Inches over, Post post, boolean undivid
 
     /** A line that puts {@code cars} pilot cars in one place where the trip meets oncoming traffic. */
     public static EscortRule undivided(String measure, Inches over, Post post, int cars) {
-        return new EscortRule(measure, over, post, true, cars);
+        return new EscortRule(new SizeLine(measure, over), post, true, cars);
     }
 
     /** Whether this load, on a trip that is or is not divided highway throughout, is past the line. */
     public boolean fires(Envelope envelope, boolean dividedOnly) {
-        if (undividedOnly && dividedOnly) {
-            return false;
-        }
-        return envelope.measure(measure).compareTo(over) > 0;
+        return !(undividedOnly && dividedOnly) && line.past(envelope);
     }
 
     /** The reason as the escorts list it: {@code rear overhang over 10 ft}. */
     public String reason() {
-        return measure.replace('_', ' ') + " over " + over;
+        return line.reason();
     }
 }
