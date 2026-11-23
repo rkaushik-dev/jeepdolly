@@ -3,6 +3,7 @@ package io.github.rkaushikdev.jeepdolly.escorts;
 import io.github.rkaushikdev.jeepdolly.Inches;
 import io.github.rkaushikdev.jeepdolly.domain.Envelope;
 import io.github.rkaushikdev.jeepdolly.domain.HighwayClass;
+import io.github.rkaushikdev.jeepdolly.escorts.EscortRule.Post;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,27 +28,33 @@ import java.util.List;
  * ordered through a different office, so the permit says one is required and does not pretend to
  * have arranged it.
  *
- * <p>The thresholds are published and change by order, so they are a value and not constants in
- * the arithmetic.
+ * <p>A long front overhang wants a car in front for the same reason width does. A beam that
+ * projects ten feet past the bumper swings across the centre line on every curve before the cab
+ * does, and the oncoming driver sees the cab.
+ *
+ * <p>The thresholds are published and change by order, so the table is a list of {@link
+ * EscortRule} lines rather than constants in the arithmetic, read in the order it is printed. The
+ * reasons come back in that order, one for each line the load is past, and two lines putting a car
+ * in the same place still put one car there.
+ *
+ * @param rows the lines of the table, in the order it is printed
  */
-public record EscortRules(
-        Inches frontWidth,
-        Inches rearWidth,
-        Inches policeWidth,
-        Inches rearLength,
-        Inches bothLength,
-        Inches poleHeight,
-        Inches rearOverhang) {
+public record EscortRules(List<EscortRule> rows) {
 
     /** The table as published. */
-    public static final EscortRules STANDARD = new EscortRules(
-            Inches.of(12),
-            Inches.of(14),
-            Inches.of(16),
-            Inches.of(100),
-            Inches.of(125),
-            Inches.of(14, 6),
-            Inches.of(10));
+    public static final EscortRules STANDARD = new EscortRules(List.of(
+            EscortRule.undivided("width", Inches.of(12), Post.FRONT),
+            EscortRule.anyRoad("width", Inches.of(14), Post.REAR),
+            EscortRule.anyRoad("width", Inches.of(16), Post.POLICE),
+            EscortRule.anyRoad("length", Inches.of(100), Post.REAR),
+            EscortRule.undivided("length", Inches.of(125), Post.FRONT),
+            EscortRule.anyRoad("rear_overhang", Inches.of(10), Post.REAR),
+            EscortRule.undivided("front_overhang", Inches.of(10), Post.FRONT),
+            EscortRule.anyRoad("height", Inches.of(14, 6), Post.POLE)));
+
+    public EscortRules {
+        rows = List.copyOf(rows);
+    }
 
     /** Read the table for an ordinary load on these classes of road. */
     public Escorts required(Envelope envelope, List<HighwayClass> classes) {
@@ -62,35 +69,20 @@ public record EscortRules(
         boolean police = false;
         boolean pole = false;
         List<String> reasons = new ArrayList<>();
-
-        if (envelope.width().compareTo(frontWidth) > 0 && !dividedOnly) {
-            front = 1;
-            reasons.add("width over " + frontWidth);
-        }
-        if (envelope.width().compareTo(rearWidth) > 0) {
-            rear = Math.max(rear, 1);
-            reasons.add("width over " + rearWidth);
-        }
-        if (envelope.width().compareTo(policeWidth) > 0) {
-            police = true;
-            reasons.add("width over " + policeWidth);
-        }
-        if (envelope.length().compareTo(rearLength) > 0) {
-            rear = Math.max(rear, 1);
-            reasons.add("length over " + rearLength);
-        }
-        if (envelope.length().compareTo(bothLength) > 0 && !dividedOnly) {
-            front = Math.max(front, 1);
-            reasons.add("length over " + bothLength);
-        }
-        if (envelope.rearOverhang().compareTo(rearOverhang) > 0) {
-            rear = Math.max(rear, 1);
-            reasons.add("rear overhang over " + rearOverhang);
-        }
-        if (envelope.height().compareTo(poleHeight) > 0) {
-            front = Math.max(front, 1);
-            pole = true;
-            reasons.add("height over " + poleHeight);
+        for (EscortRule row : rows) {
+            if (!row.fires(envelope, dividedOnly)) {
+                continue;
+            }
+            switch (row.post()) {
+                case FRONT -> front = 1;
+                case REAR -> rear = 1;
+                case POLE -> {
+                    front = 1;
+                    pole = true;
+                }
+                case POLICE -> police = true;
+            }
+            reasons.add(row.reason());
         }
         if (superload) {
             police = true;

@@ -1,9 +1,13 @@
 package io.github.rkaushikdev.jeepdolly.escorts;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.github.rkaushikdev.jeepdolly.Impossible;
+import io.github.rkaushikdev.jeepdolly.Inches;
 import io.github.rkaushikdev.jeepdolly.domain.Envelope;
 import io.github.rkaushikdev.jeepdolly.domain.HighwayClass;
+import io.github.rkaushikdev.jeepdolly.escorts.EscortRule.Post;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -153,5 +157,57 @@ class EscortsTest {
         Escorts justOver = TABLE.required(wide("12'1"), ARTERIAL);
         assertThat(justUnder.any()).isFalse();
         assertThat(justOver.front()).isEqualTo(1);
+    }
+
+    @Test
+    void aLongFrontOverhangPutsACarInFrontWhereThereIsOncomingTraffic() {
+        Envelope beam = Envelope.read("10'", "13'6", "90'", "12'", "0");
+        Escorts arterial = TABLE.required(beam, ARTERIAL);
+        assertThat(arterial.front()).isEqualTo(1);
+        assertThat(arterial.rear()).isEqualTo(0);
+        assertThat(arterial.heightPole()).isFalse();
+        assertThat(arterial.reasons()).containsExactly("front overhang over 10 ft");
+        assertThat(TABLE.required(beam, INTERSTATE).any()).isFalse();
+        assertThat(TABLE.required(Envelope.read("10'", "13'6", "90'", "10'", "0"), ARTERIAL)
+                        .any())
+                .isFalse();
+    }
+
+    @Test
+    void theTableIsItsLinesInPrintingOrder() {
+        assertThat(TABLE.rows()).hasSize(8);
+        assertThat(TABLE.rows().get(0)).isEqualTo(EscortRule.undivided("width", Inches.of(12), Post.FRONT));
+        assertThat(TABLE.rows().stream().map(EscortRule::reason))
+                .containsExactly(
+                        "width over 12 ft",
+                        "width over 14 ft",
+                        "width over 16 ft",
+                        "length over 100 ft",
+                        "length over 125 ft",
+                        "rear overhang over 10 ft",
+                        "front overhang over 10 ft",
+                        "height over 14 ft 6 in");
+    }
+
+    @Test
+    void anOrderThatMovesALineMovesTheAnswer() {
+        EscortRules ordered = new EscortRules(List.of(
+                EscortRule.anyRoad("width", Inches.of(11), Post.FRONT),
+                EscortRule.anyRoad("height", Inches.of(14), Post.POLE)));
+        Escorts escorts = ordered.required(load("11'6", "14'2", "80'", "0"), INTERSTATE);
+        assertThat(escorts.front()).isEqualTo(1);
+        assertThat(escorts.heightPole()).isTrue();
+        assertThat(escorts.reasons()).containsExactly("width over 11 ft", "height over 14 ft");
+        assertThat(TABLE.required(load("11'6", "14'2", "80'", "0"), INTERSTATE).any())
+                .isFalse();
+    }
+
+    @Test
+    void aLineAboutNothingTheEnvelopeMeasuresIsRefused() {
+        assertThatThrownBy(() -> EscortRule.anyRoad("weight", Inches.of(12), Post.REAR))
+                .isInstanceOf(Impossible.class)
+                .hasMessageContaining("weight");
+        assertThatThrownBy(() -> EscortRule.anyRoad("width", Inches.ZERO, Post.REAR))
+                .isInstanceOf(Impossible.class);
     }
 }
