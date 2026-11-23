@@ -42,6 +42,31 @@ class MeasureTest {
     }
 
     @Test
+    void aFractionOffTheTapeReadsUpToTheNextWholeInch() {
+        for (String written :
+                List.of("14'6 1/2\"", "14' 6-1/2\"", "14 ft 6 1/2 in", "14-6 1/2", "174 1/2", "174-1/4\"")) {
+            assertThat(Inches.parse(written)).as(written).isEqualTo(new Inches(175));
+        }
+        assertThat(Inches.parse("14'11 15/16")).isEqualTo(Inches.of(15));
+        assertThat(Inches.parse("6 1/16 in")).isEqualTo(new Inches(7));
+    }
+
+    @Test
+    void aFractionNobodyReadsOffATapeIsRefused() {
+        for (String written : List.of("14'6 1/3", "174 2/2", "174 0/2", "174 3/32", "14'61/2")) {
+            assertThatThrownBy(() -> Inches.parse(written)).as(written).isInstanceOf(Unreadable.class);
+        }
+    }
+
+    @Test
+    void aRefusedFractionSaysWhatWasWritten() {
+        assertThatThrownBy(() -> Inches.parse("14'6 5/3"))
+                .isInstanceOf(Unreadable.class)
+                .hasMessageContaining("14'6 5/3")
+                .hasMessageContaining("as a size");
+    }
+
+    @Test
     void aSizeIsWholeInchesAndAFloatIsNotASize() {
         // A fraction or a flag cannot be a size: the only way in takes an int.
         Signatures.constructorsTakeOnly(Inches.class, int.class);

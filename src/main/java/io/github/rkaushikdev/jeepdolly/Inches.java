@@ -1,6 +1,7 @@
 package io.github.rkaushikdev.jeepdolly;
 
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -24,12 +25,21 @@ public record Inches(int value) implements Comparable<Inches> {
     /** No size at all, which is what an overhang that does not project measures. */
     public static final Inches ZERO = new Inches(0);
 
+    /** The fractions a tape measure reads to, which are the only ones the office accepts. */
+    private static final Set<Integer> DENOMINATORS = Set.of(2, 4, 8, 16);
+
+    /** A fraction of an inch, set off by a space or a dash: {@code 6 1/2}, {@code 6-1/2}. */
+    private static final String FRACTION = "(?:(?:\\s+|\\s*-\\s*)(?<numerator>\\d+)\\s*/\\s*(?<denominator>\\d+))?";
+
+    private static final String INCH_MARK = "\\s*(?:\"|in\\.?|inches)?";
+
     private static final Pattern FEET_INCHES = Pattern.compile(
-            "^\\s*(?<feet>\\d+)\\s*(?:'|ft\\.?|feet)\\s*(?:(?<inches>\\d+)\\s*(?:\"|in\\.?|inches)?)?\\s*$",
+            "^\\s*(?<feet>\\d+)\\s*(?:'|ft\\.?|feet)\\s*(?:(?<inches>\\d+)" + FRACTION + INCH_MARK + ")?\\s*$",
             Pattern.CASE_INSENSITIVE);
-    private static final Pattern DASHED = Pattern.compile("^\\s*(?<feet>\\d+)\\s*-\\s*(?<inches>\\d+)\\s*$");
+    private static final Pattern DASHED =
+            Pattern.compile("^\\s*(?<feet>\\d+)\\s*-\\s*(?<inches>\\d+)" + FRACTION + "\\s*$");
     private static final Pattern BARE =
-            Pattern.compile("^\\s*(?<inches>\\d+)\\s*(?:\"|in\\.?|inches)?\\s*$", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("^\\s*(?<inches>\\d+)" + FRACTION + INCH_MARK + "\\s*$", Pattern.CASE_INSENSITIVE);
 
     /** Whole feet. */
     public static Inches of(int feet) {
@@ -48,22 +58,50 @@ public record Inches(int value) implements Comparable<Inches> {
      * anybody write one format. {@code 14'6"}, {@code 14 ft 6 in}, {@code 14-6} and {@code 174} all
      * mean the same 174 inches, so every one of them reads back as 174.
      *
+     * <p>A fraction off the tape, {@code 14'6 1/2"} or {@code 174-1/4}, is read up to the next whole
+     * inch. Rounding it down would give the hauler the half inch, and the half inch is the one that
+     * finds the bottom of the overpass. Only halves, quarters, eighths and sixteenths are a
+     * fraction somebody read off a tape; anything else is refused rather than guessed at.
+     *
      * @throws Unreadable when the text is not a size in any of those shapes
      */
     public static Inches parse(String text) {
-        for (Pattern pattern : List.of(FEET_INCHES, DASHED)) {
+        for (Pattern pattern : List.of(FEET_INCHES, DASHED, BARE)) {
             Matcher found = pattern.matcher(text);
             if (found.matches()) {
-                int feet = Integer.parseInt(found.group("feet"));
-                String part = found.group("inches");
-                return of(feet, part == null ? 0 : Integer.parseInt(part));
+                int feet = whole(found, "feet");
+                int inches = whole(found, "inches");
+                return of(feet, inches + fractionRoundedUp(found, text));
             }
         }
-        Matcher found = BARE.matcher(text);
-        if (found.matches()) {
-            return new Inches(Integer.parseInt(found.group("inches")));
+        throw unreadable(text);
+    }
+
+    /** A named number off the match, nothing when the shape has no such part or it was left out. */
+    private static int whole(Matcher found, String name) {
+        if (!found.namedGroups().containsKey(name)) {
+            return 0;
         }
-        throw new Unreadable("cannot read " + Written.quoted(text) + " as a size", Facts.of("written", text));
+        String part = found.group(name);
+        return part == null ? 0 : Integer.parseInt(part);
+    }
+
+    /** One inch for any fraction written, none for no fraction, a refusal for one nobody reads off a tape. */
+    private static int fractionRoundedUp(Matcher found, String text) {
+        String numerator = found.group("numerator");
+        if (numerator == null) {
+            return 0;
+        }
+        int top = Integer.parseInt(numerator);
+        int bottom = Integer.parseInt(found.group("denominator"));
+        if (!DENOMINATORS.contains(bottom) || top < 1 || top >= bottom) {
+            throw unreadable(text);
+        }
+        return 1;
+    }
+
+    private static Unreadable unreadable(String text) {
+        return new Unreadable("cannot read " + Written.quoted(text) + " as a size", Facts.of("written", text));
     }
 
     /** Whole feet, rounded toward zero. */

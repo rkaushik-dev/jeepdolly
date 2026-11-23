@@ -38,6 +38,15 @@ class EnvelopeTest {
     }
 
     @Test
+    void aFormWrittenToTheHalfInchCarriesTheLoadUpToTheWholeOne() {
+        Envelope load = Envelope.read("12'5 1/2\"", "14-1 3/4", "92 ft", "23 1/2", "9'11 1/8");
+        assertThat(load.width()).isEqualTo(new Inches(150));
+        assertThat(load.height()).isEqualTo(new Inches(170));
+        assertThat(load.frontOverhang()).isEqualTo(new Inches(24));
+        assertThat(load.rearOverhang()).isEqualTo(new Inches(120));
+    }
+
+    @Test
     void anEnvelopePrintsTheWayThePermitFacePrintsIt() {
         assertThat(box()).hasToString("12 ft wide, 13 ft 6 in high, 80 ft long");
         assertThat(box("2'", "9'").toString()).endsWith("2 ft front and 9 ft rear overhang");
