@@ -60,21 +60,6 @@ class AxleTest {
     }
 
     @Test
-    void theTireLimitIsThePublishedRateTimesThatWidth() {
-        assertThat(drive().tireLimit(600)).isEqualTo(new Pounds(26400));
-        assertThat(drive().withTires(2).withTireWidth(new Inches(16)).tireLimit(600))
-                .isEqualTo(new Pounds(19200));
-    }
-
-    @Test
-    void anAxleOverItsTireLimitReportsTheOverageAndNotAVerdict() {
-        Axle narrow = new Axle(AxleKind.JEEP, new Pounds(22000), 4, new Inches(8));
-        assertThat(narrow.tireLimit(600)).isEqualTo(new Pounds(19200));
-        assertThat(narrow.overTireLimit(600)).isEqualTo(new Pounds(2800));
-        assertThat(drive().overTireLimit(600)).isEqualTo(new Pounds(0));
-    }
-
-    @Test
     void anAxleNeedsAnEvenCountOfAtLeastTwoTires() {
         assertThatThrownBy(() -> drive().withTires(3)).isInstanceOf(Impossible.class);
         assertThatThrownBy(() -> drive().withTires(0)).isInstanceOf(Impossible.class);
@@ -150,12 +135,6 @@ class AxleTest {
                 List.of(new Inches(52), new Inches(52), new Inches(52)));
         assertThat(quad.liftableCount()).isEqualTo(2);
         assertThat(quad.name()).isEqualTo("quad");
-    }
-
-    @Test
-    void aGroupTireLimitIsTheSumOfWhatItsAxlesWillCarry() {
-        AxleGroup tandem = new AxleGroup(List.of(drive().withTires(8), drive().withTires(8)), List.of(new Inches(54)));
-        assertThat(tandem.tireLimit(600)).isEqualTo(new Pounds(105600));
     }
 
     @Test

@@ -59,10 +59,10 @@ public record WeightReading(
             groups.add(new GroupFinding(position, group, scale.apply(table.groupLimit(group.count()))));
         }
         List<TireFinding> tires = new ArrayList<>();
+        TireRule rule = table.tireRule();
         List<Axle> axles = stream.axles();
         for (int position = 0; position < axles.size(); position++) {
-            Axle axle = axles.get(position);
-            tires.add(new TireFinding(position, axle.weight(), axle.tireLimit(table.tireRate())));
+            tires.add(rule.read(position, axles.get(position)));
         }
         return new WeightReading(stream.gross(), grossLimit, groups, Formula.measure(stream, grossLimit), tires, order);
     }

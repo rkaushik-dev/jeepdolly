@@ -131,6 +131,18 @@ class SchemasTest {
     }
 
     @Test
+    void aTireWidthMayBeCopiedOffTheSidewall() {
+        Map<String, Object> written = body();
+        item(written, "axles", 0).put("tire_width", "425/65R22.5");
+        item(written, "axles", 1).put("tire_width", "11R22.5");
+        Application application = read(written).toDomain("25-04471", FILED, BOOK);
+        assertThat(application.combination().stream().axles().get(0).tireWidth())
+                .isEqualTo(new Inches(16));
+        assertThat(application.combination().stream().axles().get(1).tireWidth())
+                .isEqualTo(new Inches(11));
+    }
+
+    @Test
     void anAxleWithNoSpacingInFrontOfItIsRefused() {
         Map<String, Object> written = body();
         item(written, "axles", 2).remove("spacing_before");

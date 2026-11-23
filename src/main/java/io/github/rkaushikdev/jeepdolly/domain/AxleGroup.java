@@ -91,14 +91,6 @@ public record AxleGroup(List<Axle> axles, List<Inches> spacings) {
         return (int) axles.stream().filter(Axle::liftable).count();
     }
 
-    public Pounds tireLimit(int poundsPerInch) {
-        Pounds total = Pounds.ZERO;
-        for (Axle axle : axles) {
-            total = total.plus(axle.tireLimit(poundsPerInch));
-        }
-        return total;
-    }
-
     /** The heaviest axle, the first of them when two weigh the same. */
     public Axle heaviest() {
         return Collections.max(axles, Comparator.comparing(Axle::weight));

@@ -11,6 +11,7 @@ import io.github.rkaushikdev.jeepdolly.domain.Combination;
 import io.github.rkaushikdev.jeepdolly.domain.CommodityBook;
 import io.github.rkaushikdev.jeepdolly.domain.Envelope;
 import io.github.rkaushikdev.jeepdolly.domain.Piece;
+import io.github.rkaushikdev.jeepdolly.domain.TireSize;
 import io.github.rkaushikdev.jeepdolly.domain.Unit;
 import io.github.rkaushikdev.jeepdolly.domain.UnitKind;
 import io.github.rkaushikdev.jeepdolly.fees.Quote;
@@ -85,7 +86,7 @@ public final class Schemas {
         }
 
         public Axle toDomain() {
-            return new Axle(AxleKind.of(kind), Pounds.parse(weight), tires, Inches.parse(tireWidth), liftable);
+            return new Axle(AxleKind.of(kind), Pounds.parse(weight), tires, TireSize.widthOf(tireWidth), liftable);
         }
     }
 

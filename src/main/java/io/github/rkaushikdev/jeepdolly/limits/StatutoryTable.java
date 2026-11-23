@@ -52,6 +52,11 @@ public record StatutoryTable(
         }
     }
 
+    /** The tire rule at this table's rate. */
+    public TireRule tireRule() {
+        return TireRule.at(tireRate);
+    }
+
     /** The largest group the table names a limit for. */
     public int largestNamed() {
         return Collections.max(byCount.keySet());
