@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.github.rkaushikdev.jeepdolly.Impossible;
 import io.github.rkaushikdev.jeepdolly.Pounds;
 import io.github.rkaushikdev.jeepdolly.support.Structures;
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +24,40 @@ class RatingTest {
         assertThat(Rating.factorFor(KENNEBEC, new Pounds(94000))).isEqualTo(140);
         assertThat(Rating.factorFor(KENNEBEC, new Pounds(132000))).isEqualTo(100);
         assertThat(Rating.factorFor(CULVERT, new Pounds(82000))).isEqualTo(109);
+    }
+
+    @Test
+    void aStructureIsDueWithinTwentyFourMonthsOfItsLastInspection() {
+        assertThat(KENNEBEC.inspected()).contains(Structures.INSPECTED);
+        assertThat(KENNEBEC.inspectionOverdue(LocalDate.of(2026, 6, 1))).isFalse();
+        assertThat(KENNEBEC.inspectionOverdue(LocalDate.of(2026, 6, 2))).isTrue();
+        Structure unknown = Structure.builder("9001", "Wesserunsett Stream", "SR43-1", StructureKind.of("bridge"))
+                .spansFeet(List.of(40))
+                .operatingRating(new Pounds(100000))
+                .build();
+        assertThat(unknown.inspectionOverdue(LocalDate.of(2024, 1, 1))).isTrue();
+    }
+
+    @Test
+    void aClearRatingOnAnOverdueStructureCrossesUnderConditions() {
+        Rating rating = Rating.rate(KENNEBEC, new Pounds(94000), LocalDate.of(2026, 9, 1));
+        assertThat(rating.verdict()).isSameAs(Verdict.CONDITIONAL);
+        assertThat(rating.factor()).isEqualTo(140);
+        assertThat(rating.held()).contains(Rating.INSPECTION_OVERDUE);
+        assertThat(rating).hasToString("1247 rates 140% for 94,000 lb, conditional (inspection overdue)");
+        assertThat(rating.crossingConditions()).hasSize(3);
+    }
+
+    @Test
+    void anOverdueInspectionNeverMakesARatingKinderOrHarsherThanConditional() {
+        LocalDate late = LocalDate.of(2026, 9, 1);
+        assertThat(Rating.rate(KENNEBEC, new Pounds(125000), late))
+                .isEqualTo(Rating.rate(KENNEBEC, new Pounds(125000)));
+        assertThat(Rating.rate(KENNEBEC, new Pounds(140000), late).verdict()).isSameAs(Verdict.REFUSED);
+        assertThat(Rating.rate(CARRABASSETT, new Pounds(94000), late).postedOut())
+                .isTrue();
+        assertThat(Rating.rate(KENNEBEC, new Pounds(94000), LocalDate.of(2025, 4, 8)))
+                .isEqualTo(Rating.rate(KENNEBEC, new Pounds(94000)));
     }
 
     @Test

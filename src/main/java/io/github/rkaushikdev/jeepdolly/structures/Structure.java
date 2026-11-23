@@ -44,6 +44,9 @@ public record Structure(
         Optional<Inches> clearance,
         Optional<Inches> deckWidth) {
 
+    /** The national inspection cycle: a structure is looked at within this many months of the last time. */
+    public static final int INSPECTION_MONTHS = 24;
+
     public Structure {
         spansFeet = List.copyOf(spansFeet);
         if (ident.isBlank()) {
@@ -96,6 +99,16 @@ public record Structure(
     /** How old it is in a year, or zero when nobody knows when it was built. */
     public int age(LocalDate on) {
         return built != 0 ? on.getYear() - built : 0;
+    }
+
+    /**
+     * Whether the structure is past its inspection on a day: never inspected, or last inspected
+     * more than {@link #INSPECTION_MONTHS} months before it.
+     */
+    public boolean inspectionOverdue(LocalDate on) {
+        return inspected
+                .map(last -> last.plusMonths(INSPECTION_MONTHS).isBefore(on))
+                .orElse(true);
     }
 
     /** Whether the posted sign lets this weight on at all. */

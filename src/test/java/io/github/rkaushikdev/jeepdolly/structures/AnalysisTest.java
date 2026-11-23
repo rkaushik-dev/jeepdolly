@@ -8,6 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.rkaushikdev.jeepdolly.domain.AxleStream;
 import io.github.rkaushikdev.jeepdolly.routing.Itinerary;
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -40,6 +41,17 @@ class AnalysisTest {
         assertThat(reading.size()).isEqualTo(3);
         assertThat(reading.conditions()).isEmpty();
         assertThat(reading).hasToString("3 structures clear");
+    }
+
+    @Test
+    void onADayPastTheInspectionCycleEveryStructureIsCrossedUnderConditions() {
+        StructureReading reading = Analysis.analyseRoute(BOOK, trip(), light(), LocalDate.of(2026, 7, 1));
+        assertThat(reading.clear()).isTrue();
+        assertThat(reading.conditional()).hasSize(3);
+        assertThat(reading.findings())
+                .allSatisfy(one -> assertThat(one.rating().held()).contains("inspection overdue"));
+        assertThat(Analysis.analyseRoute(BOOK, trip(), light(), LocalDate.of(2025, 4, 8)))
+                .isEqualTo(Analysis.analyseRoute(BOOK, trip(), light()));
     }
 
     @Test

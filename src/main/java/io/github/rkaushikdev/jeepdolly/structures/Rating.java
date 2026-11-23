@@ -2,8 +2,10 @@ package io.github.rkaushikdev.jeepdolly.structures;
 
 import io.github.rkaushikdev.jeepdolly.Impossible;
 import io.github.rkaushikdev.jeepdolly.Pounds;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * One load over one structure, with the factor that decided it.
@@ -21,12 +23,21 @@ import java.util.Objects;
  * <p>A posting beats all three. If somebody signed an order posting the structure, the sign is the
  * limit whatever the arithmetic says, until somebody signs another order.
  *
+ * <p>The arithmetic is only as good as the inspection behind the operating rating. A structure past
+ * its inspection cycle is not cleared outright however well it rates: the load crosses it under the
+ * conditions, and the rating says why, until somebody has been under it with a hammer.
+ *
  * @param gross the weight the structure feels, which is the governing window rather than the
  *     whole train
  * @param factor operating rating over the load in whole percent, or zero when posted out
  * @param postedOut the sign refused the load before any arithmetic was done
+ * @param held why a load the arithmetic cleared crosses under conditions anyway, when one did
  */
-public record Rating(Structure structure, Pounds gross, int factor, Verdict verdict, boolean postedOut) {
+public record Rating(
+        Structure structure, Pounds gross, int factor, Verdict verdict, boolean postedOut, Optional<String> held) {
+
+    /** What a rating held back for an overdue inspection says. */
+    public static final String INSPECTION_OVERDUE = "inspection overdue";
 
     /** Factor at or above which a load crosses with no conditions. */
     public static final int CLEAR_PERCENT = 110;
@@ -39,7 +50,12 @@ public record Rating(Structure structure, Pounds gross, int factor, Verdict verd
 
     /** A rating the arithmetic decided. */
     public Rating(Structure structure, Pounds gross, int factor, Verdict verdict) {
-        this(structure, gross, factor, verdict, false);
+        this(structure, gross, factor, verdict, false, Optional.empty());
+    }
+
+    /** A rating the arithmetic or the sign decided, with nothing held back. */
+    public Rating(Structure structure, Pounds gross, int factor, Verdict verdict, boolean postedOut) {
+        this(structure, gross, factor, verdict, postedOut, Optional.empty());
     }
 
     /**
@@ -72,6 +88,16 @@ public record Rating(Structure structure, Pounds gross, int factor, Verdict verd
             verdict = Verdict.REFUSED;
         }
         return new Rating(structure, gross, factor, verdict);
+    }
+
+    /** Rate a load over a structure on a day, holding back a clear rating on an overdue structure. */
+    public static Rating rate(Structure structure, Pounds gross, LocalDate on) {
+        Rating rated = rate(structure, gross);
+        if (rated.verdict() == Verdict.CLEARS && structure.inspectionOverdue(on)) {
+            return new Rating(
+                    structure, gross, rated.factor(), Verdict.CONDITIONAL, false, Optional.of(INSPECTION_OVERDUE));
+        }
+        return rated;
     }
 
     /**
@@ -121,6 +147,7 @@ public record Rating(Structure structure, Pounds gross, int factor, Verdict verd
             String sign = structure.posted().map(Pounds::toString).orElse("no posting");
             return structure.ident() + " posted at " + sign + ", load refused";
         }
-        return structure.ident() + " rates " + factor + "% for " + gross + ", " + verdict;
+        String why = held.map(one -> " (" + one + ")").orElse("");
+        return structure.ident() + " rates " + factor + "% for " + gross + ", " + verdict + why;
     }
 }
