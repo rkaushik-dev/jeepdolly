@@ -200,7 +200,7 @@ public final class Assessor {
         Naming naming = Naming.check(office.escorts(), application.escortCards(), escorts, day);
         refusals.addAll(naming.refusals());
         Marking marking = Marking.forLoad(envelope, false, superload);
-        TravelLimits limits = Windows.limitsFor(envelope, superload, commodity.highCentre());
+        TravelLimits limits = Windows.limitsFor(envelope, superload, commodity.highCentre(), itinerary.classes());
         Mileage mileage = Mileage.chargeable(itinerary);
 
         Optional<Quote> quote = Optional.empty();

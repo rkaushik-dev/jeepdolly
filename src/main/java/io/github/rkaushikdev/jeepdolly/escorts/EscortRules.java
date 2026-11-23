@@ -86,7 +86,7 @@ public record EscortRules(List<EscortRule> rows) {
      */
     public Escorts required(
             Envelope envelope, List<HighwayClass> classes, boolean superload, StructureReading structures) {
-        boolean dividedOnly = !classes.isEmpty() && classes.stream().allMatch(HighwayClass::federal);
+        boolean dividedOnly = HighwayClass.dividedThroughout(classes);
         int front = 0;
         int rear = 0;
         boolean police = false;

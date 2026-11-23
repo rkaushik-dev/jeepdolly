@@ -1,6 +1,7 @@
 package io.github.rkaushikdev.jeepdolly.domain;
 
 import io.github.rkaushikdev.jeepdolly.Valued;
+import java.util.List;
 
 /**
  * The four rule sets that decide which limits reach a road, ordered by what they will carry.
@@ -45,6 +46,14 @@ public enum HighwayClass implements Valued {
 
     public boolean federal() {
         return this == INTERSTATE;
+    }
+
+    /**
+     * Whether a trip over these classes of road is divided highway the whole way, so that it never
+     * meets oncoming traffic. A trip over no roads at all is not, which is the stricter reading.
+     */
+    public static boolean dividedThroughout(List<HighwayClass> classes) {
+        return !classes.isEmpty() && classes.stream().allMatch(HighwayClass::federal);
     }
 
     @Override

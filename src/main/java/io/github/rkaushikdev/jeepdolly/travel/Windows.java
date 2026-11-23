@@ -6,6 +6,7 @@ import io.github.rkaushikdev.jeepdolly.PermitCalendar;
 import io.github.rkaushikdev.jeepdolly.Window;
 import io.github.rkaushikdev.jeepdolly.domain.Curfew;
 import io.github.rkaushikdev.jeepdolly.domain.Envelope;
+import io.github.rkaushikdev.jeepdolly.domain.HighwayClass;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -38,6 +39,9 @@ public final class Windows {
     /** Past this width a load moves in daylight only. */
     public static final Inches DAYLIGHT_WIDTH = Inches.of(12);
 
+    /** Past this width a load moves in daylight only, on a trip that is interstate the whole way. */
+    public static final Inches DIVIDED_DAYLIGHT_WIDTH = Inches.of(14);
+
     /** Past this height a load moves in daylight only. */
     public static final Inches DAYLIGHT_HEIGHT = Inches.of(14, 6);
 
@@ -53,9 +57,10 @@ public final class Windows {
      * <p>Width and height put a load in daylight. Past fourteen feet wide or fifteen high a load is
      * also a sail: a crosswind that a tall van shrugs off lifts the downwind tires of a fourteen foot
      * modular box, so it parks at a lighter wind than a load with a high centre of gravity does.
+     * The width line is two feet more generous on a trip that never leaves the interstate.
      */
     public static final List<WhenRule> RULES = List.of(
-            WhenRule.daylight("width", DAYLIGHT_WIDTH),
+            WhenRule.daylight("width", DAYLIGHT_WIDTH, DIVIDED_DAYLIGHT_WIDTH),
             WhenRule.daylight("height", DAYLIGHT_HEIGHT),
             WhenRule.wind("width", Inches.of(14), SAIL_HOLD_MPH),
             WhenRule.wind("height", Inches.of(15), SAIL_HOLD_MPH));
@@ -70,13 +75,20 @@ public final class Windows {
         return limitsFor(envelope, false, false);
     }
 
+    /** Read the when rules off the load, for a trip that is not interstate the whole way. */
+    public static TravelLimits limitsFor(Envelope envelope, boolean superload, boolean highCentre) {
+        return limitsFor(envelope, superload, highCentre, List.of());
+    }
+
     /**
-     * Read the when rules off the load.
+     * Read the when rules off the load, for a trip over these classes of road.
      *
      * <p>The reasons are the daylight reasons, because that is what the planning screen explains. A
      * load that several lines park in a wind parks at the lightest of them.
      */
-    public static TravelLimits limitsFor(Envelope envelope, boolean superload, boolean highCentre) {
+    public static TravelLimits limitsFor(
+            Envelope envelope, boolean superload, boolean highCentre, List<HighwayClass> classes) {
+        boolean dividedOnly = HighwayClass.dividedThroughout(classes);
         List<String> reasons = new ArrayList<>();
         boolean daylightOnly = false;
         List<Integer> holds = new ArrayList<>();
@@ -84,13 +96,13 @@ public final class Windows {
             holds.add(WIND_HOLD_MPH);
         }
         for (WhenRule rule : RULES) {
-            if (!rule.fires(envelope)) {
+            if (!rule.fires(envelope, dividedOnly)) {
                 continue;
             }
             switch (rule.hold()) {
                 case DAYLIGHT -> {
                     daylightOnly = true;
-                    reasons.add(rule.reason());
+                    reasons.add(rule.reason(dividedOnly));
                 }
                 case WIND -> holds.add(rule.windMph());
             }

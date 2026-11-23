@@ -76,6 +76,15 @@ class HighwayTest {
     }
 
     @Test
+    void aTripIsDividedThroughoutOnlyWhenEveryRoadOnItIsTheInterstate() {
+        assertThat(HighwayClass.dividedThroughout(List.of(HighwayClass.INTERSTATE)))
+                .isTrue();
+        assertThat(HighwayClass.dividedThroughout(List.of(HighwayClass.INTERSTATE, HighwayClass.ARTERIAL)))
+                .isFalse();
+        assertThat(HighwayClass.dividedThroughout(List.of())).isFalse();
+    }
+
+    @Test
     void routesSortByPrefixThenNumberForAReport() {
         List<Route> routes =
                 Stream.of("US 2", "I-95", "SR 27", "SR 11").map(Route::parse).toList();

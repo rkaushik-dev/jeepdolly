@@ -15,6 +15,7 @@ import io.github.rkaushikdev.jeepdolly.Inches;
 import io.github.rkaushikdev.jeepdolly.PermitCalendar;
 import io.github.rkaushikdev.jeepdolly.domain.Curfew;
 import io.github.rkaushikdev.jeepdolly.domain.Envelope;
+import io.github.rkaushikdev.jeepdolly.domain.HighwayClass;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -104,8 +105,11 @@ class WindowsTest {
     @Test
     void theWhenTableIsItsLinesInPrintingOrder() {
         assertThat(Windows.RULES)
-                .extracting(WhenRule::reason)
+                .extracting(one -> one.reason(false))
                 .containsExactly("width over 12 ft", "height over 14 ft 6 in", "width over 14 ft", "height over 15 ft");
+        assertThat(Windows.RULES)
+                .extracting(one -> one.reason(true))
+                .containsExactly("width over 14 ft", "height over 14 ft 6 in", "width over 14 ft", "height over 15 ft");
         assertThat(Windows.RULES)
                 .extracting(WhenRule::hold)
                 .containsExactly(
@@ -114,12 +118,50 @@ class WindowsTest {
 
     @Test
     void aWhenLineThatContradictsItselfIsRefused() {
-        assertThatThrownBy(() -> new WhenRule("width", Inches.of(12), WhenRule.Hold.DAYLIGHT, 25))
+        assertThatThrownBy(() -> new WhenRule("width", Inches.of(12), Inches.of(12), WhenRule.Hold.DAYLIGHT, 25))
                 .isInstanceOf(Impossible.class);
-        assertThatThrownBy(() -> new WhenRule("width", Inches.of(12), WhenRule.Hold.WIND, 0))
+        assertThatThrownBy(() -> new WhenRule("width", Inches.of(12), Inches.of(12), WhenRule.Hold.WIND, 0))
                 .isInstanceOf(Impossible.class);
+        assertThatThrownBy(() -> WhenRule.daylight("width", Inches.of(12), Inches.of(11)))
+                .isInstanceOf(Impossible.class)
+                .hasMessageContaining("divided highway");
         assertThatThrownBy(() -> WhenRule.daylight("weight", Inches.of(12))).isInstanceOf(Impossible.class);
         assertThatThrownBy(() -> WhenRule.daylight("width", Inches.ZERO)).isInstanceOf(Impossible.class);
+    }
+
+    @Test
+    void aWideLoadThatNeverLeavesTheInterstateMayRunAtNight() {
+        TravelLimits limits = Windows.limitsFor(wide("13'6"), false, false, List.of(HighwayClass.INTERSTATE));
+        assertThat(limits.daylightOnly()).isFalse();
+        assertThat(limits.reasons()).isEmpty();
+        assertThat(limits).hasToString("no travel restriction");
+    }
+
+    @Test
+    void theSameLoadIsInDaylightTheMomentItTurnsOffTheInterstate() {
+        List<HighwayClass> mixed = List.of(HighwayClass.INTERSTATE, HighwayClass.ARTERIAL);
+        TravelLimits limits = Windows.limitsFor(wide("13'6"), false, false, mixed);
+        assertThat(limits.daylightOnly()).isTrue();
+        assertThat(limits.reasons()).containsExactly("width over 12 ft");
+        assertThat(Windows.limitsFor(wide("13'6"), false, false, List.of()).daylightOnly())
+                .isTrue();
+    }
+
+    @Test
+    void pastFourteenFeetTheInterstateIsDaylightToo() {
+        TravelLimits limits = Windows.limitsFor(wide("14'2"), false, false, List.of(HighwayClass.INTERSTATE));
+        assertThat(limits.daylightOnly()).isTrue();
+        assertThat(limits.reasons()).containsExactly("width over 14 ft");
+        assertThat(limits.windHoldMph()).contains(Windows.SAIL_HOLD_MPH);
+    }
+
+    @Test
+    void theInterstateDoesNotLetATallLoadOrASuperloadRunAtNight() {
+        List<HighwayClass> interstate = List.of(HighwayClass.INTERSTATE);
+        assertThat(Windows.limitsFor(load("10'", "15'"), false, false, interstate)
+                        .daylightOnly())
+                .isTrue();
+        assertThat(Windows.limitsFor(load(), true, false, interstate).reasons()).containsExactly("superload");
     }
 
     @Test
