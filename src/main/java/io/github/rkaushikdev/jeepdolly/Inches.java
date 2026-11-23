@@ -1,6 +1,11 @@
 package io.github.rkaushikdev.jeepdolly;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -11,8 +16,8 @@ import java.util.regex.Pattern;
  * <p>A permit reads 14 ft 6 in. It never reads 14.5 ft, and that is not a matter of taste. An inch
  * of height is the difference between a load that clears the Sebasticook overpass and a load that
  * takes the deck off it, so an inch is a thing this system can name and a fraction of one is not.
- * Whatever the hauler writes on the application, feet and inches or a bare count of inches, parses
- * back to the same integer.
+ * Whatever the hauler writes on the application, feet and inches, a bare count of inches or a metric
+ * size off a Canadian work order, parses back to the same integer.
  *
  * <p>Sizes are ordered and closed under the arithmetic the office actually does. None of them will
  * add itself to a bare integer: a width plus 6 is a question about what 6 means, and the answer
@@ -41,6 +46,17 @@ public record Inches(int value) implements Comparable<Inches> {
     private static final Pattern BARE =
             Pattern.compile("^\\s*(?<inches>\\d+)" + FRACTION + INCH_MARK + "\\s*$", Pattern.CASE_INSENSITIVE);
 
+    /** A metric size, to the millimetre at most: {@code 4.25 m}, {@code 425 cm}, {@code 4250 mm}. */
+    private static final Pattern METRIC = Pattern.compile(
+            "^\\s*(?<amount>\\d+(?:[.,]\\d{1,3})?)\\s*(?<unit>mm|cm|m|metres|meters)\\s*$", Pattern.CASE_INSENSITIVE);
+
+    /** Millimetres in one of each metric unit the office reads. */
+    private static final Map<String, Integer> MILLIMETRES =
+            Map.of("mm", 1, "cm", 10, "m", 1000, "metres", 1000, "meters", 1000);
+
+    /** Tenths of a millimetre in an inch, which is exact by definition. */
+    private static final int TENTHS_PER_INCH = 254;
+
     /** Whole feet. */
     public static Inches of(int feet) {
         return of(feet, 0);
@@ -63,18 +79,40 @@ public record Inches(int value) implements Comparable<Inches> {
      * finds the bottom of the overpass. Only halves, quarters, eighths and sixteenths are a
      * fraction somebody read off a tape; anything else is refused rather than guessed at.
      *
+     * <p>A metric size, which is what a load coming down from New Brunswick arrives with, is read
+     * the same way: {@code 4.42 m} is 174.02 inches and goes on the permit as 175. Nothing is read
+     * as metric without its unit, so {@code 14.5} on its own is still refused, because it is just
+     * as likely to be fourteen and a half feet.
+     *
      * @throws Unreadable when the text is not a size in any of those shapes
      */
     public static Inches parse(String text) {
+        return imperial(text).or(() -> metric(text)).orElseThrow(() -> unreadable(text));
+    }
+
+    private static Optional<Inches> imperial(String text) {
         for (Pattern pattern : List.of(FEET_INCHES, DASHED, BARE)) {
             Matcher found = pattern.matcher(text);
             if (found.matches()) {
                 int feet = whole(found, "feet");
                 int inches = whole(found, "inches");
-                return of(feet, inches + fractionRoundedUp(found, text));
+                return Optional.of(of(feet, inches + fractionRoundedUp(found, text)));
             }
         }
-        throw unreadable(text);
+        return Optional.empty();
+    }
+
+    /** A metric size converted to inches, rounded up for the same reason a fraction is. */
+    private static Optional<Inches> metric(String text) {
+        Matcher found = METRIC.matcher(text);
+        if (!found.matches()) {
+            return Optional.empty();
+        }
+        BigDecimal amount = new BigDecimal(found.group("amount").replace(',', '.'));
+        int unit = MILLIMETRES.get(found.group("unit").toLowerCase(Locale.ROOT));
+        BigDecimal tenths = amount.multiply(BigDecimal.valueOf(unit * 10L));
+        return Optional.of(new Inches(tenths.divide(BigDecimal.valueOf(TENTHS_PER_INCH), 0, RoundingMode.CEILING)
+                .intValueExact()));
     }
 
     /** A named number off the match, nothing when the shape has no such part or it was left out. */

@@ -67,6 +67,24 @@ class MeasureTest {
     }
 
     @Test
+    void aMetricSizeReadsUpToTheWholeInch() {
+        assertThat(Inches.parse("4.42 m")).isEqualTo(new Inches(175));
+        assertThat(Inches.parse("4,42 m")).isEqualTo(new Inches(175));
+        assertThat(Inches.parse("442 cm")).isEqualTo(new Inches(175));
+        assertThat(Inches.parse("4420mm")).isEqualTo(new Inches(175));
+        assertThat(Inches.parse("2.6 metres")).isEqualTo(new Inches(103));
+        assertThat(Inches.parse("254 MM")).isEqualTo(new Inches(10));
+        assertThat(Inches.parse("255 mm")).isEqualTo(new Inches(11));
+    }
+
+    @Test
+    void aMetricSizeWithoutItsUnitOrPastTheMillimetreIsRefused() {
+        for (String written : List.of("4.42", "4.4215 m", "m", "4.42 km", "-4 m")) {
+            assertThatThrownBy(() -> Inches.parse(written)).as(written).isInstanceOf(Unreadable.class);
+        }
+    }
+
+    @Test
     void aSizeIsWholeInchesAndAFloatIsNotASize() {
         // A fraction or a flag cannot be a size: the only way in takes an int.
         Signatures.constructorsTakeOnly(Inches.class, int.class);
@@ -128,6 +146,25 @@ class MeasureTest {
         assertThat(Pounds.parse("40 tons")).isEqualTo(new Pounds(80000));
         assertThat(Pounds.parse("1 ton")).isEqualTo(new Pounds(2000));
         assertThat(Pounds.ofTons(66)).isEqualTo(new Pounds(132000));
+    }
+
+    @Test
+    void aScaleTicketInKilogramsOrTonnesReadsUpToTheWholePound() {
+        assertThat(Pounds.parse("36,287 kg")).isEqualTo(new Pounds(80000));
+        assertThat(Pounds.parse("36287kg")).isEqualTo(new Pounds(80000));
+        assertThat(Pounds.parse("36,288 kilograms")).isEqualTo(new Pounds(80002));
+        assertThat(Pounds.parse("36.287 t")).isEqualTo(new Pounds(80000));
+        assertThat(Pounds.parse("60 tonnes")).isEqualTo(new Pounds(132278));
+        assertThat(Pounds.parse("1 kg")).isEqualTo(new Pounds(3));
+        assertThat(Pounds.parse("0.5 kg")).isEqualTo(new Pounds(2));
+    }
+
+    @Test
+    void aMetricWeightPastWhatTheScalePrintsIsRefused() {
+        for (String written : List.of("36.2871 t", "kg", "36 287 kg", "36.3 tons", "-5 kg")) {
+            assertThatThrownBy(() -> Pounds.parse(written)).as(written).isInstanceOf(Unreadable.class);
+        }
+        assertThat(Pounds.KILOGRAMS_PER_POUND).hasToString("0.45359237");
     }
 
     @Test
