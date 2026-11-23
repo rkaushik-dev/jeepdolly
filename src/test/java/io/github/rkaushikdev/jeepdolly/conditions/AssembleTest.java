@@ -333,6 +333,18 @@ class AssembleTest {
     }
 
     @Test
+    void aCloseClearanceAndANarrowArchPrintWhatTheDriverHasToDoAboutThem() {
+        List<Condition> printed = sheet(reading(
+                new Obstruction("US2-1", "close clearance", "railroad bridge", "13 ft 9 in", "13 ft 11 in", false),
+                new Obstruction("SR43-1", "close width", "stone arch", "10 ft", "10 ft 4 in", false)));
+        assertThat(first(printed, "R-04").text())
+                .isEqualTo("Obey the posted clearance of 13 ft 11 in at railroad bridge.");
+        assertThat(first(printed, "R-07").text())
+                .isEqualTo("The stone arch on SR43-1 is 10 ft 4 in wide. Cross it centred, slowly.");
+        assertThat(codes(printed).indexOf("R-04")).isLessThan(codes(printed).indexOf("R-07"));
+    }
+
+    @Test
     void twoBridgesInTheMiddleBandEachGetTheirFourCrossingConditions() {
         AxleStream stream = make(List.of(12000, 19000, 19000, 25000, 25000, 25000), List.of(200, 54, 180, 52, 52));
         Structure sebasticook = Structure.builder("7001", "Sebasticook River", "US2-1", StructureKind.of("bridge"))

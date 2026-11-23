@@ -146,6 +146,46 @@ class EvaluateTest {
     }
 
     @Test
+    void aLoadThatClearsByLessThanThreeInchesIsToldItIsClose() {
+        RestrictionBook book = new RestrictionBook();
+        book.add(clearance("R-1", "US2-1", "railroad bridge", Inches.of(13, 11)));
+        RouteReading reading = run(book);
+        assertThat(reading.clear()).isTrue();
+        assertThat(reading.conditions()).hasSize(1);
+        Obstruction close = reading.conditions().get(0);
+        assertThat(close.kind()).isEqualTo("close clearance");
+        assertThat(close.needed()).isEqualTo("13 ft 9 in");
+        assertThat(close.allowed()).isEqualTo("13 ft 11 in");
+        assertThat(close.toString()).endsWith("(condition)");
+    }
+
+    @Test
+    void threeInchesToSpareIsRoomEnough() {
+        RestrictionBook book = new RestrictionBook();
+        book.add(clearance("R-1", "US2-1", "railroad bridge", Inches.of(14)));
+        assertThat(run(book).obstructions()).isEmpty();
+        assertThat(Evaluate.CLEARANCE_ALLOWANCE).isEqualTo(new Inches(3));
+    }
+
+    @Test
+    void aNarrowStructureTheLoadOnlyJustFitsIsACondition() {
+        RestrictionBook book = new RestrictionBook();
+        book.add(Restriction.builder("R-3", "SR43-1", RestrictionKind.WIDTH, "stone arch")
+                .width(Inches.of(10, 4))
+                .build());
+        RouteReading reading = run().restrictions(book)
+                .envelope(Envelope.read("10'", "13'", "60'"))
+                .reading();
+        assertThat(reading.clear()).isTrue();
+        assertThat(reading.conditions()).extracting(Obstruction::kind).containsExactly("close width");
+        assertThat(run().restrictions(book)
+                        .envelope(Envelope.read("9'6", "13'", "60'"))
+                        .reading()
+                        .obstructions())
+                .isEmpty();
+    }
+
+    @Test
     void aLoadThatDoesNotFitStopsTheRouteAndNamesBothNumbers() {
         RestrictionBook book = new RestrictionBook();
         book.add(clearance("R-1", "US2-1", "railroad bridge", Inches.of(13, 6)));

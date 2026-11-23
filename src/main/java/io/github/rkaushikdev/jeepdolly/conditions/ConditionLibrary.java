@@ -38,6 +38,11 @@ public final class ConditionLibrary {
             new ConditionText("R-04", Category.ROUTE, "Obey the posted clearance of {clearance} at {structure}.", 40),
             new ConditionText("R-05", Category.ROUTE, "Stop traffic both ways to turn onto {segment} at {place}.", 50),
             new ConditionText("R-06", Category.ROUTE, "The turn at {place} allows {allowed}. Walk it first.", 60),
+            new ConditionText(
+                    "R-07",
+                    Category.ROUTE,
+                    "The {structure} on {segment} is {width} wide. Cross it centred, slowly.",
+                    65),
             new ConditionText("U-01", Category.ROUTE, "Line lift at {place}. Ring {owner} on {telephone}.", 70),
             new ConditionText("U-02", Category.ROUTE, "Do not move until every line lift is confirmed.", 80),
             new ConditionText("S-01", Category.STRUCTURE, "Cross {structure} alone with no other vehicle on it.", 10),

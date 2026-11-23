@@ -1,5 +1,6 @@
 package io.github.rkaushikdev.jeepdolly.routing;
 
+import io.github.rkaushikdev.jeepdolly.Inches;
 import io.github.rkaushikdev.jeepdolly.Pounds;
 import io.github.rkaushikdev.jeepdolly.SeasonBook;
 import io.github.rkaushikdev.jeepdolly.SeasonOrder;
@@ -23,7 +24,9 @@ import java.util.Optional;
  *
  * <p>A seasonal posting reads like a fatal finding and is reported as a condition, because the
  * answer is a date rather than a refusal and the hauler wants the date. A corner is always fatal:
- * there is no condition that gets a hundred and forty feet round a thirty eight foot radius.
+ * there is no condition that gets a hundred and forty feet round a thirty eight foot radius. A
+ * clearance or a narrow structure the load fits with almost nothing to spare is a condition rather
+ * than a pass, because the permit has to tell the driver it is close.
  *
  * <p>The seasonal case is the one worth reading twice. A segment carries a seasonal restriction
  * naming a region, and the restriction does not carry a weight. The weight comes from whichever
@@ -32,6 +35,16 @@ import java.util.Optional;
  * number, and the number changes when any of them does.
  */
 public final class Evaluate {
+
+    /**
+     * A load that clears a structure by less than this creeps under it rather than driving under
+     * it. A loaded trailer bounces, a resurfacing takes an inch off a posted clearance without
+     * anybody repainting the sign, and three inches is what the office allows for both.
+     */
+    public static final Inches CLEARANCE_ALLOWANCE = new Inches(3);
+
+    /** A load with less than this to spare across a narrow structure crosses it centred and slow. */
+    public static final Inches WIDTH_ALLOWANCE = new Inches(6);
 
     private Evaluate() {}
 
@@ -172,15 +185,12 @@ public final class Evaluate {
             case CLEARANCE ->
                 restriction
                         .height()
-                        .filter(height -> envelope.height().compareTo(height) > 0)
-                        .map(height -> new Obstruction(
-                                ident, "clearance", note, envelope.height().toString(), height.toString()));
+                        .flatMap(height ->
+                                fit(ident, "clearance", note, envelope.height(), height, CLEARANCE_ALLOWANCE));
             case WIDTH ->
                 restriction
                         .width()
-                        .filter(width -> envelope.width().compareTo(width) > 0)
-                        .map(width -> new Obstruction(
-                                ident, "width", note, envelope.width().toString(), width.toString()));
+                        .flatMap(width -> fit(ident, "width", note, envelope.width(), width, WIDTH_ALLOWANCE));
             case WEIGHT ->
                 restriction
                         .weight()
@@ -197,6 +207,21 @@ public final class Evaluate {
                         .map(curfew -> new Obstruction(
                                 ident, "curfew", note, "travel outside the curfew", curfew.toString(), false));
         };
+    }
+
+    /**
+     * A size against a limit: fatal past it, a condition inside it by less than the allowance, and
+     * nothing at all with room to spare.
+     */
+    private static Optional<Obstruction> fit(
+            String ident, String kind, String note, Inches load, Inches limit, Inches allowance) {
+        if (load.compareTo(limit) > 0) {
+            return Optional.of(new Obstruction(ident, kind, note, load.toString(), limit.toString()));
+        }
+        if (limit.minus(load).compareTo(allowance) < 0) {
+            return Optional.of(new Obstruction(ident, "close " + kind, note, load.toString(), limit.toString(), false));
+        }
+        return Optional.empty();
     }
 
     private static Optional<Obstruction> seasonal(

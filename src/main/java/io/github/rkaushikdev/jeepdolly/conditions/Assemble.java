@@ -132,6 +132,13 @@ public final class Assemble {
                             Facts.of("segment", segment, "limit", trouble.allowed(), "order", orderOf(trouble)));
                 case "curfew" ->
                     sheet.addAt("T-05", segment, Facts.of("segment", segment, "curfew", trouble.allowed()));
+                case "close clearance" ->
+                    sheet.addAt("R-04", segment, Facts.of("clearance", trouble.allowed(), "structure", trouble.note()));
+                case "close width" ->
+                    sheet.addAt(
+                            "R-07",
+                            segment,
+                            Facts.of("structure", trouble.note(), "segment", segment, "width", trouble.allowed()));
                 case "tight corner" -> {
                     // Both of these, and in this order. The first is what the driver has to do and
                     // the second is why, and an officer at the roadside reads the first one on its

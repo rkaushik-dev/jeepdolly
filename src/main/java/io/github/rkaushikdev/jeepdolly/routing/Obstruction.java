@@ -11,8 +11,8 @@ package io.github.rkaushikdev.jeepdolly.routing;
  * traffic.
  *
  * @param kind what sort of trouble, as the worksheet names it: {@code closure}, {@code clearance},
- *     {@code width}, {@code posting}, {@code posted season}, {@code curfew}, {@code jurisdiction},
- *     {@code corner} or {@code tight corner}
+ *     {@code close clearance}, {@code width}, {@code close width}, {@code posting}, {@code posted
+ *     season}, {@code curfew}, {@code jurisdiction}, {@code corner} or {@code tight corner}
  * @param needed what the load needs, as the letter prints it
  * @param allowed what the road allows, as the letter prints it
  * @param place where it is when that is a place rather than a piece of road, or empty
