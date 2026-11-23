@@ -1,0 +1,42 @@
+# The condition library as the office words it: code, category, order within it, text.
+# One condition to a line, the four fields separated by tabs. A slot is written {name}.
+T-01	travel	10	Valid from {start} to {end} inclusive.
+T-02	travel	20	Daylight hours only, half an hour either side.
+T-03	travel	30	No movement Saturday, Sunday or a legal holiday.
+T-04	travel	40	No movement during the {holiday} travel ban.
+T-05	travel	50	No movement on {segment} between {curfew}.
+T-06	travel	60	Stop and park when the wind reaches {wind} mph.
+T-07	travel	70	Stop when visibility falls below five hundred feet.
+R-01	route	10	Route as written. Any deviation voids this permit.
+R-02	route	20	{segment} is posted at {limit} while order {order} runs.
+R-03	route	30	Do not enter {segment}. Use {detour}.
+R-04	route	40	Obey the posted clearance of {clearance} at {structure}.
+R-05	route	50	Stop traffic both ways to turn onto {segment} at {place}.
+R-06	route	60	The turn at {place} allows {allowed}. Walk it first.
+R-07	route	65	The {structure} on {segment} is {width} wide. Cross it centred, slowly.
+U-01	route	70	Line lift at {place}. Ring {owner} on {telephone}.
+U-02	route	80	Do not move until every line lift is confirmed.
+S-01	structure	10	Cross {structure} alone with no other vehicle on it.
+S-02	structure	20	Cross {structure} at walking pace.
+S-03	structure	30	Cross {structure} centred on the roadway.
+S-04	structure	40	Do not stop on {structure} for any reason.
+E-01	escort	10	{cars} ahead of the load.
+E-02	escort	20	{cars} behind the load.
+E-03	escort	30	Front pilot car carries a height pole set one inch high.
+E-04	escort	40	Police escort, arranged by the carrier.
+E-05	escort	50	Pilot cars for this move: {cards}.
+E-06	escort	60	Tell the office who is piloting before the load moves.
+E-07	escort	70	Survey the route with a height pole and file it before moving.
+E-08	escort	80	Pilot cars hold all traffic off {structure} while the load crosses.
+M-01	marking	10	OVERSIZE LOAD banners front and rear.
+M-02	marking	20	{count} eighteen inch red flags on corners and widest points.
+M-03	marking	30	{count} amber lamps in place of flags.
+M-04	marking	40	{count} amber beacons on the power unit.
+M-05	marking	35	{count} amber lamps beside the flags, lit from sunset to sunrise.
+M-06	marking	37	{count} red lamps at the end of the rear overhang after dark.
+Q-01	equipment	10	Axle spacings as declared. Any change voids this permit.
+Q-02	equipment	20	All liftable axles down and carrying for the whole move.
+Q-03	equipment	30	Tires as declared, no fewer and no narrower.
+G-01	general	10	Carry this permit in the power unit and produce it on demand.
+G-02	general	20	The carrier is liable for damage to any structure.
+G-03	general	30	This permit does not waive any other law or local order.

@@ -2,7 +2,15 @@ package io.github.rkaushikdev.jeepdolly.conditions;
 
 import io.github.rkaushikdev.jeepdolly.Conflict;
 import io.github.rkaushikdev.jeepdolly.Facts;
+import io.github.rkaushikdev.jeepdolly.Impossible;
 import io.github.rkaushikdev.jeepdolly.NotOnFile;
+import io.github.rkaushikdev.jeepdolly.Written;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -23,61 +31,11 @@ import java.util.Map;
  */
 public final class ConditionLibrary {
 
+    /** Where the shipped wording lives on the class path. */
+    public static final String STANDARD_RESOURCE = "/conditions/standard-wording.tsv";
+
     /** The office wording as it stands, which is what the printer reads. */
-    public static final List<ConditionText> STANDARD_TEXTS = List.of(
-            new ConditionText("T-01", Category.TRAVEL, "Valid from {start} to {end} inclusive.", 10),
-            new ConditionText("T-02", Category.TRAVEL, "Daylight hours only, half an hour either side.", 20),
-            new ConditionText("T-03", Category.TRAVEL, "No movement Saturday, Sunday or a legal holiday.", 30),
-            new ConditionText("T-04", Category.TRAVEL, "No movement during the {holiday} travel ban.", 40),
-            new ConditionText("T-05", Category.TRAVEL, "No movement on {segment} between {curfew}.", 50),
-            new ConditionText("T-06", Category.TRAVEL, "Stop and park when the wind reaches {wind} mph.", 60),
-            new ConditionText("T-07", Category.TRAVEL, "Stop when visibility falls below five hundred feet.", 70),
-            new ConditionText("R-01", Category.ROUTE, "Route as written. Any deviation voids this permit.", 10),
-            new ConditionText("R-02", Category.ROUTE, "{segment} is posted at {limit} while order {order} runs.", 20),
-            new ConditionText("R-03", Category.ROUTE, "Do not enter {segment}. Use {detour}.", 30),
-            new ConditionText("R-04", Category.ROUTE, "Obey the posted clearance of {clearance} at {structure}.", 40),
-            new ConditionText("R-05", Category.ROUTE, "Stop traffic both ways to turn onto {segment} at {place}.", 50),
-            new ConditionText("R-06", Category.ROUTE, "The turn at {place} allows {allowed}. Walk it first.", 60),
-            new ConditionText(
-                    "R-07",
-                    Category.ROUTE,
-                    "The {structure} on {segment} is {width} wide. Cross it centred, slowly.",
-                    65),
-            new ConditionText("U-01", Category.ROUTE, "Line lift at {place}. Ring {owner} on {telephone}.", 70),
-            new ConditionText("U-02", Category.ROUTE, "Do not move until every line lift is confirmed.", 80),
-            new ConditionText("S-01", Category.STRUCTURE, "Cross {structure} alone with no other vehicle on it.", 10),
-            new ConditionText("S-02", Category.STRUCTURE, "Cross {structure} at walking pace.", 20),
-            new ConditionText("S-03", Category.STRUCTURE, "Cross {structure} centred on the roadway.", 30),
-            new ConditionText("S-04", Category.STRUCTURE, "Do not stop on {structure} for any reason.", 40),
-            new ConditionText("E-01", Category.ESCORT, "{cars} ahead of the load.", 10),
-            new ConditionText("E-02", Category.ESCORT, "{cars} behind the load.", 20),
-            new ConditionText("E-03", Category.ESCORT, "Front pilot car carries a height pole set one inch high.", 30),
-            new ConditionText("E-04", Category.ESCORT, "Police escort, arranged by the carrier.", 40),
-            new ConditionText("E-05", Category.ESCORT, "Pilot cars for this move: {cards}.", 50),
-            new ConditionText("E-06", Category.ESCORT, "Tell the office who is piloting before the load moves.", 60),
-            new ConditionText(
-                    "E-07", Category.ESCORT, "Survey the route with a height pole and file it before moving.", 70),
-            new ConditionText(
-                    "E-08", Category.ESCORT, "Pilot cars hold all traffic off {structure} while the load crosses.", 80),
-            new ConditionText("M-01", Category.MARKING, "OVERSIZE LOAD banners front and rear.", 10),
-            new ConditionText(
-                    "M-02", Category.MARKING, "{count} eighteen inch red flags on corners and widest points.", 20),
-            new ConditionText("M-03", Category.MARKING, "{count} amber lamps in place of flags.", 30),
-            new ConditionText("M-04", Category.MARKING, "{count} amber beacons on the power unit.", 40),
-            new ConditionText(
-                    "M-05", Category.MARKING, "{count} amber lamps beside the flags, lit from sunset to sunrise.", 35),
-            new ConditionText(
-                    "M-06", Category.MARKING, "{count} red lamps at the end of the rear overhang after dark.", 37),
-            new ConditionText(
-                    "Q-01", Category.EQUIPMENT, "Axle spacings as declared. Any change voids this permit.", 10),
-            new ConditionText(
-                    "Q-02", Category.EQUIPMENT, "All liftable axles down and carrying for the whole move.", 20),
-            new ConditionText("Q-03", Category.EQUIPMENT, "Tires as declared, no fewer and no narrower.", 30),
-            new ConditionText(
-                    "G-01", Category.GENERAL, "Carry this permit in the power unit and produce it on demand.", 10),
-            new ConditionText("G-02", Category.GENERAL, "The carrier is liable for damage to any structure.", 20),
-            new ConditionText(
-                    "G-03", Category.GENERAL, "This permit does not waive any other law or local order.", 30));
+    public static final List<ConditionText> STANDARD_TEXTS = wording(STANDARD_RESOURCE);
 
     private static final Comparator<Condition> PRINTING = Comparator.comparing(Condition::category)
             .thenComparingInt(Condition::order)
@@ -90,6 +48,52 @@ public final class ConditionLibrary {
         ConditionLibrary library = new ConditionLibrary();
         STANDARD_TEXTS.forEach(library::add);
         return library;
+    }
+
+    /**
+     * Read a wording file: one condition to a line, code, category, order and text separated by
+     * tabs, with blank lines and lines starting {@code #} left out.
+     *
+     * @throws Impossible when the file is missing or a line of it is not a condition
+     */
+    public static List<ConditionText> wording(String resource) {
+        InputStream found = ConditionLibrary.class.getResourceAsStream(resource);
+        if (found == null) {
+            throw new Impossible("no condition wording at " + resource);
+        }
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(found, StandardCharsets.UTF_8))) {
+            return reader.lines()
+                    .filter(line -> !line.isBlank() && !line.startsWith("#"))
+                    .map(ConditionLibrary::wordingLine)
+                    .toList();
+        } catch (IOException trouble) {
+            throw new UncheckedIOException(trouble);
+        }
+    }
+
+    /**
+     * One line of a wording file as a condition.
+     *
+     * @throws Impossible when it does not have the four fields
+     */
+    public static ConditionText wordingLine(String line) {
+        String[] fields = line.split("\t", -1);
+        if (fields.length != 4 || !fields[2].matches("\\d+")) {
+            throw new Impossible("a wording line is code, category, order and text: " + Written.quoted(line));
+        }
+        return new ConditionText(fields[0], Category.of(fields[1]), fields[3], Integer.parseInt(fields[2]));
+    }
+
+    /**
+     * This library with some of its wording replaced, code by code, by wording the office has put
+     * on file since. A code the library does not hold is added, so an order can bring in a new one.
+     */
+    public ConditionLibrary revised(List<ConditionText> replacements) {
+        ConditionLibrary made = new ConditionLibrary();
+        Map<String, ConditionText> kept = new LinkedHashMap<>(byCode);
+        replacements.forEach(one -> kept.put(one.code(), one));
+        kept.values().forEach(made::add);
+        return made;
     }
 
     /**

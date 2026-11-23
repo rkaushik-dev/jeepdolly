@@ -25,6 +25,41 @@ class ConditionLibraryTest {
     }
 
     @Test
+    void theShippedWordingIsReadOffItsFileLineByLine() {
+        assertThat(ConditionLibrary.STANDARD_TEXTS).hasSize(40);
+        assertThat(ConditionLibrary.STANDARD_TEXTS.get(0))
+                .isEqualTo(new ConditionText("T-01", Category.TRAVEL, "Valid from {start} to {end} inclusive.", 10));
+        assertThat(ConditionLibrary.wording(ConditionLibrary.STANDARD_RESOURCE))
+                .isEqualTo(ConditionLibrary.STANDARD_TEXTS);
+        assertThat(ConditionLibrary.wordingLine("E-09\tescort\t90\tTwo pilot cars ahead."))
+                .isEqualTo(new ConditionText("E-09", Category.ESCORT, "Two pilot cars ahead.", 90));
+    }
+
+    @Test
+    void aWordingLineThatIsNotAConditionIsRefused() {
+        assertThatThrownBy(() -> ConditionLibrary.wordingLine("E-09\tescort\tTwo pilot cars ahead."))
+                .isInstanceOf(Impossible.class)
+                .hasMessageContaining("code, category, order and text");
+        assertThatThrownBy(() -> ConditionLibrary.wordingLine("E-09\tescort\tfirst\tTwo pilot cars ahead."))
+                .isInstanceOf(Impossible.class);
+        assertThatThrownBy(() -> ConditionLibrary.wording("/conditions/no-such-wording.tsv"))
+                .isInstanceOf(Impossible.class)
+                .hasMessageContaining("no-such-wording");
+    }
+
+    @Test
+    void aRevisedLibraryReplacesWordingCodeByCodeAndLeavesTheRest() {
+        ConditionLibrary revised = LIBRARY.revised(List.of(
+                new ConditionText("T-02", Category.TRAVEL, "Daylight only.", 20),
+                new ConditionText("G-04", Category.GENERAL, "Report any damage.", 40)));
+        assertThat(revised.render("T-02").text()).isEqualTo("Daylight only.");
+        assertThat(revised.render("T-03").text())
+                .isEqualTo(LIBRARY.render("T-03").text());
+        assertThat(revised.size()).isEqualTo(LIBRARY.size() + 1);
+        assertThat(LIBRARY.render("T-02").text()).startsWith("Daylight hours only");
+    }
+
+    @Test
     void aConditionWithNoSlotsRendersAsWritten() {
         Condition rendered = LIBRARY.render("R-01");
         assertThat(rendered.text()).isEqualTo("Route as written. Any deviation voids this permit.");

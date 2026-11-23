@@ -2,7 +2,9 @@ package io.github.rkaushikdev.jeepdolly.persistence;
 
 import io.github.rkaushikdev.jeepdolly.Facts;
 import io.github.rkaushikdev.jeepdolly.Logs;
+import io.github.rkaushikdev.jeepdolly.conditions.Category;
 import io.github.rkaushikdev.jeepdolly.conditions.ConditionLibrary;
+import io.github.rkaushikdev.jeepdolly.conditions.ConditionText;
 import io.github.rkaushikdev.jeepdolly.domain.CommodityBook;
 import io.github.rkaushikdev.jeepdolly.domain.Network;
 import io.github.rkaushikdev.jeepdolly.fees.ScheduleBook;
@@ -26,6 +28,7 @@ import io.github.rkaushikdev.jeepdolly.structures.StructureBook;
 import io.github.rkaushikdev.jeepdolly.utilities.LineBook;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.hibernate.Hibernate;
@@ -85,8 +88,32 @@ public record Reference(
                 sizesFor(entityManager, day),
                 statutesFor(entityManager),
                 schedulesFor(entityManager),
-                ConditionLibrary.standard(),
+                libraryFor(entityManager, day),
                 Books.linesFrom(entityManager));
+    }
+
+    /**
+     * The condition library as it reads on a day: the shipped wording, with every condition the
+     * office has reworded since put in its place, the latest wording in force that day for each code.
+     *
+     * <p>A condition is a legal instrument and a change to its words goes out by order with a date
+     * on it, so a permit issued in March prints the March wording. A bare database has no rows and
+     * prints the shipped wording, which is not a fault and is not logged as one.
+     */
+    public static ConditionLibrary libraryFor(EntityManager entityManager, LocalDate on) {
+        Map<String, ConditionText> latest = new LinkedHashMap<>();
+        for (ConditionTextRow row : entityManager
+                .createQuery(
+                        "select c from ConditionTextRow c where c.effective <= :on order by c.effective, c.code",
+                        ConditionTextRow.class)
+                .setParameter("on", on)
+                .getResultList()) {
+            latest.put(
+                    row.getCode(),
+                    new ConditionText(
+                            row.getCode(), Category.of(row.getCategory()), row.getBody(), row.getPrintOrder()));
+        }
+        return ConditionLibrary.standard().revised(List.copyOf(latest.values()));
     }
 
     /**

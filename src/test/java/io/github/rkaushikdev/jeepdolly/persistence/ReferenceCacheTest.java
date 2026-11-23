@@ -5,10 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.rkaushikdev.jeepdolly.Inches;
 import io.github.rkaushikdev.jeepdolly.Pounds;
+import io.github.rkaushikdev.jeepdolly.conditions.Category;
+import io.github.rkaushikdev.jeepdolly.conditions.ConditionLibrary;
 import io.github.rkaushikdev.jeepdolly.domain.Node;
 import io.github.rkaushikdev.jeepdolly.domain.RestrictionKind;
 import io.github.rkaushikdev.jeepdolly.persistence.models.ApplicationRow;
 import io.github.rkaushikdev.jeepdolly.persistence.models.CarrierRow;
+import io.github.rkaushikdev.jeepdolly.persistence.models.ConditionTextRow;
 import io.github.rkaushikdev.jeepdolly.persistence.models.LineCrossingRow;
 import io.github.rkaushikdev.jeepdolly.persistence.models.LineOwnerRow;
 import io.github.rkaushikdev.jeepdolly.persistence.models.NodeRow;
@@ -70,6 +73,33 @@ class ReferenceCacheTest {
             assertThat(found.network().segments()).hasSize(12);
             assertThat(found.commodities().size()).isEqualTo(17);
             assertThat(found.day()).isEqualTo(APRIL);
+        }
+    }
+
+    @Test
+    void aConditionRewordedByOrderPrintsTheNewWordsFromItsDayOn() {
+        try (UnitOfWork work = factory.unitOfWork()) {
+            work.add(new ConditionTextRow(
+                    "T-02", LocalDate.of(2025, 5, 1), "travel", "Daylight only, thirty minutes either side.", 20));
+            work.add(new ConditionTextRow(
+                    "G-04", LocalDate.of(2025, 5, 1), "general", "Report any damage to the office the same day.", 40));
+            work.flush();
+            ConditionLibrary april = Reference.read(work.entityManager(), APRIL).library();
+            ConditionLibrary june = Reference.read(work.entityManager(), JUNE).library();
+            assertThat(april.render("T-02").text()).isEqualTo("Daylight hours only, half an hour either side.");
+            assertThat(april.contains("G-04")).isFalse();
+            assertThat(june.render("T-02").text()).isEqualTo("Daylight only, thirty minutes either side.");
+            assertThat(june.render("G-04").category()).isSameAs(Category.GENERAL);
+            assertThat(june.size()).isEqualTo(april.size() + 1);
+        }
+    }
+
+    @Test
+    void aBareDatabasePrintsTheShippedWording() {
+        try (UnitOfWork work = factory.unitOfWork()) {
+            ConditionLibrary found = Reference.libraryFor(work.entityManager(), JUNE);
+            assertThat(found.codes()).isEqualTo(ConditionLibrary.standard().codes());
+            assertThat(found.render("R-01").text()).isEqualTo("Route as written. Any deviation voids this permit.");
         }
     }
 
