@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.github.rkaushikdev.jeepdolly.Impossible;
+import io.github.rkaushikdev.jeepdolly.Inches;
 import io.github.rkaushikdev.jeepdolly.Pounds;
 import io.github.rkaushikdev.jeepdolly.support.Structures;
 import java.time.LocalDate;
@@ -58,6 +59,49 @@ class RatingTest {
                 .isTrue();
         assertThat(Rating.rate(KENNEBEC, new Pounds(94000), LocalDate.of(2025, 4, 8)))
                 .isEqualTo(Rating.rate(KENNEBEC, new Pounds(94000)));
+    }
+
+    private static Structure deck(String width) {
+        return Structure.builder("8120", "Sheepscot River", "US2-1", StructureKind.of("bridge"))
+                .spansFeet(List.of(80))
+                .built(1964)
+                .inspected(Structures.INSPECTED)
+                .operatingRating(new Pounds(150000))
+                .deckWidth(Inches.parse(width))
+                .build();
+    }
+
+    @Test
+    void aDeckNarrowerThanTheLoadRefusesItWhateverItWeighs() {
+        Rating rating = Rating.rate(deck("13'"), new Pounds(90000), LocalDate.of(2025, 4, 8), Inches.of(14));
+        assertThat(rating.verdict()).isSameAs(Verdict.REFUSED);
+        assertThat(rating.factor()).isEqualTo(166);
+        assertThat(rating.held()).contains("deck 13 ft wide");
+    }
+
+    @Test
+    void aDeckThatLeavesLessThanALaneIsCrossedAlone() {
+        Rating rating = Rating.rate(deck("24'"), new Pounds(90000), LocalDate.of(2025, 4, 8), Inches.of(14));
+        assertThat(rating.verdict()).isSameAs(Verdict.CONDITIONAL);
+        assertThat(rating.held()).contains("deck leaves less than a lane");
+        assertThat(Rating.rate(deck("26'"), new Pounds(90000), LocalDate.of(2025, 4, 8), Inches.of(14))
+                        .verdict())
+                .isSameAs(Verdict.CLEARS);
+        assertThat(Rating.rate(KENNEBEC, new Pounds(94000), LocalDate.of(2025, 4, 8), Inches.of(20)))
+                .isEqualTo(Rating.rate(KENNEBEC, new Pounds(94000)));
+    }
+
+    @Test
+    void theFirstReasonToHoldACrossingBackIsTheOneItKeeps() {
+        LocalDate late = LocalDate.of(2026, 9, 1);
+        Rating overdue = Rating.rate(deck("24'"), new Pounds(90000), late, Inches.of(14));
+        assertThat(overdue.verdict()).isSameAs(Verdict.CONDITIONAL);
+        assertThat(overdue.held()).contains(Rating.INSPECTION_OVERDUE);
+        Rating refused = Rating.rate(deck("13'"), new Pounds(90000), late, Inches.of(14));
+        assertThat(refused.verdict()).isSameAs(Verdict.REFUSED);
+        assertThat(refused.held()).contains("deck 13 ft wide");
+        Rating heavy = Rating.rate(KENNEBEC, new Pounds(140000));
+        assertThat(heavy.heldTo(Verdict.CONDITIONAL, "anything")).isSameAs(heavy);
     }
 
     @Test

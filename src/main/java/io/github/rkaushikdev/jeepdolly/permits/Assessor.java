@@ -187,7 +187,8 @@ public final class Assessor {
         RouteReading route = walkRoute(office, itinerary, envelope, gross, day);
         route.fatal().stream().map(Obstruction::toString).forEach(refusals::add);
 
-        StructureReading structures = Analysis.analyseRoute(office.structures(), itinerary, stream, day);
+        StructureReading structures =
+                Analysis.analyseRoute(office.structures(), itinerary, stream, day, envelope.width());
         for (StructureFinding finding : structures.refusals()) {
             refusals.add(finding.structure().name() + " will not take this load");
         }

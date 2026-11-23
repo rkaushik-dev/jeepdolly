@@ -6,10 +6,13 @@ import static io.github.rkaushikdev.jeepdolly.support.Streams.tractorLowboy;
 import static io.github.rkaushikdev.jeepdolly.support.Structures.structureBook;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.github.rkaushikdev.jeepdolly.Inches;
+import io.github.rkaushikdev.jeepdolly.Pounds;
 import io.github.rkaushikdev.jeepdolly.domain.AxleStream;
 import io.github.rkaushikdev.jeepdolly.routing.Itinerary;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 /** Every structure on a route against one load, in driven order. */
@@ -52,6 +55,26 @@ class AnalysisTest {
                 .allSatisfy(one -> assertThat(one.rating().held()).contains("inspection overdue"));
         assertThat(Analysis.analyseRoute(BOOK, trip(), light(), LocalDate.of(2025, 4, 8)))
                 .isEqualTo(Analysis.analyseRoute(BOOK, trip(), light()));
+    }
+
+    @Test
+    void aWideLoadIsReadAgainstTheDeckOfEveryStructureThatHasOne() {
+        Structure narrow = Structure.builder("8120", "Sheepscot River", "US2-1", StructureKind.of("bridge"))
+                .spansFeet(List.of(80))
+                .inspected(LocalDate.of(2025, 1, 10))
+                .operatingRating(new Pounds(150000))
+                .deckWidth(Inches.of(13))
+                .build();
+        StructureReading reading = Analysis.analyse(
+                List.of(BOOK.get("1247"), narrow),
+                light(),
+                Optional.of(LocalDate.of(2025, 4, 8)),
+                Optional.of(Inches.of(14)));
+        assertThat(reading.structuresInTheWay()).containsExactly("8120");
+        assertThat(reading.findings().get(0).verdict()).isSameAs(Verdict.CLEARS);
+        assertThat(reading.findings().get(1)).hasToString("Sheepscot River: 40,000 lb of it, 375%, deck 13 ft wide");
+        assertThat(Analysis.analyseRoute(BOOK, trip(), light(), LocalDate.of(2025, 4, 8), Inches.of(14)))
+                .isEqualTo(Analysis.analyseRoute(BOOK, trip(), light(), LocalDate.of(2025, 4, 8)));
     }
 
     @Test

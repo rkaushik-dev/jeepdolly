@@ -18,9 +18,13 @@ public record StructureFinding(Structure structure, LoadWindow window, Rating ra
         return rating.crossingConditions();
     }
 
-    /** As the worksheet reads it: {@code Kennebec River: 94,000 lb of it, 140%}. */
+    /**
+     * As the worksheet reads it: {@code Kennebec River: 94,000 lb of it, 140%}, and why the crossing
+     * was held back when it was: {@code Sheepscot River: 40,000 lb of it, 375%, deck 13 ft wide}.
+     */
     @Override
     public String toString() {
-        return structure.name() + ": " + window.weight() + " of it, " + rating.factor() + "%";
+        String held = rating.held().map(why -> ", " + why).orElse("");
+        return structure.name() + ": " + window.weight() + " of it, " + rating.factor() + "%" + held;
     }
 }

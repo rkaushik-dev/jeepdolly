@@ -1,6 +1,7 @@
 package io.github.rkaushikdev.jeepdolly.structures;
 
 import io.github.rkaushikdev.jeepdolly.Impossible;
+import io.github.rkaushikdev.jeepdolly.Inches;
 import io.github.rkaushikdev.jeepdolly.Pounds;
 import java.time.LocalDate;
 import java.util.List;
@@ -25,7 +26,8 @@ import java.util.Optional;
  *
  * <p>The arithmetic is only as good as the inspection behind the operating rating. A structure past
  * its inspection cycle is not cleared outright however well it rates: the load crosses it under the
- * conditions, and the rating says why, until somebody has been under it with a hammer.
+ * conditions, and the rating says why, until somebody has been under it with a hammer. A deck too
+ * narrow for the load, or one that leaves no lane beside it, holds the crossing back the same way.
  *
  * @param gross the weight the structure feels, which is the governing window rather than the
  *     whole train
@@ -35,6 +37,9 @@ import java.util.Optional;
  */
 public record Rating(
         Structure structure, Pounds gross, int factor, Verdict verdict, boolean postedOut, Optional<String> held) {
+
+    /** The room a deck has to leave beside a load for anybody else to be on it. */
+    public static final Inches LANE = Inches.of(12);
 
     /** What a rating held back for an overdue inspection says. */
     public static final String INSPECTION_OVERDUE = "inspection overdue";
@@ -93,11 +98,45 @@ public record Rating(
     /** Rate a load over a structure on a day, holding back a clear rating on an overdue structure. */
     public static Rating rate(Structure structure, Pounds gross, LocalDate on) {
         Rating rated = rate(structure, gross);
-        if (rated.verdict() == Verdict.CLEARS && structure.inspectionOverdue(on)) {
-            return new Rating(
-                    structure, gross, rated.factor(), Verdict.CONDITIONAL, false, Optional.of(INSPECTION_OVERDUE));
+        if (structure.inspectionOverdue(on)) {
+            return rated.heldTo(Verdict.CONDITIONAL, INSPECTION_OVERDUE);
         }
         return rated;
+    }
+
+    /**
+     * Rate a load of this width over a structure on a day: the weight first, then the deck.
+     *
+     * <p>A deck narrower than the load refuses it whatever it weighs. A deck that leaves less than
+     * {@link #LANE} beside the load leaves no room for anybody else, so a load the weight cleared
+     * crosses it alone, which is the first of the crossing conditions anyway. A structure with no
+     * deck width on its record is read on its weight alone.
+     */
+    public static Rating rate(Structure structure, Pounds gross, LocalDate on, Inches width) {
+        Rating rated = rate(structure, gross, on);
+        Optional<Inches> deck = structure.deckWidth();
+        if (deck.isEmpty()) {
+            return rated;
+        }
+        if (width.compareTo(deck.get()) > 0) {
+            return rated.heldTo(Verdict.REFUSED, "deck " + deck.get() + " wide");
+        }
+        if (deck.get().minus(width).compareTo(LANE) < 0) {
+            return rated.heldTo(Verdict.CONDITIONAL, "deck leaves less than a lane");
+        }
+        return rated;
+    }
+
+    /**
+     * This rating with its verdict brought down to {@code most} and the reason written beside it. A
+     * verdict already at or below {@code most} is left alone, reason and all, so the first reason to
+     * hold a crossing back is the one it keeps.
+     */
+    public Rating heldTo(Verdict most, String why) {
+        if (verdict.compareTo(most) >= 0) {
+            return this;
+        }
+        return new Rating(structure, gross, factor, most, postedOut, Optional.of(why));
     }
 
     /**
